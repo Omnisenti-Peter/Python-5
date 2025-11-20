@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Page Not Found - Opinian{% endblock %}
+
+{% block content %}
+<div class="main-content" style="text-align: center; padding: 4rem 2rem;">
+    <div style="max-width: 600px; margin: 0 auto;">
+        <div style="font-size: 8rem; color: var(--art-gold); font-family: var(--font-display); font-weight: 900; line-height: 1; margin-bottom: 1rem;">
+            404
+        </div>
+
+        <h1 style="font-family: var(--font-display); color: var(--art-gold); font-size: 2.5rem; margin-bottom: 1rem;">
+            Story Not Found
+        </h1>
+
+        <p style="color: var(--champagne); font-size: 1.2rem; margin-bottom: 2rem; line-height: 1.6;">
+            Like a forgotten tale in the archives of time, the page you're looking for has vanished into the smoke-filled night.
+        </p>
+
+        <div style="margin: 3rem 0;">
+            <i class="fas fa-search" style="font-size: 4rem; color: var(--smoke-gray); opacity: 0.3;"></i>
+        </div>
+
+        <p style="color: var(--smoke-gray); font-style: italic; margin-bottom: 2rem;">
+            "In every great mystery, the clues lead somewhere..."
+        </p>
+
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a href="{{ url_for('index') }}" class="blog-btn">
+                <i class="fas fa-home"></i> Return Home
+            </a>
+
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('write_blog') }}" class="blog-btn secondary">
+                <i class="fas fa-pen-fancy"></i> Write a Story
+            </a>
+            {% else %}
+            <button class="blog-btn secondary" onclick="showLoginModal()">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

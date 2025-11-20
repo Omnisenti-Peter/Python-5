@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel - Opinian{% endblock %}
+
+{% block content %}
+<div class="admin-container art-deco-border noir-shadow">
+    <div class="admin-header">
+        <h2 class="admin-title">
+            <i class="fas fa-user-crown"></i> Control Room
+        </h2>
+        <p class="admin-subtitle">Configure your AI assistant and manage the platform</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('save_api_config') }}" id="api-form">
+        <div class="api-config-section">
+            <h3 class="api-config-title">
+                <i class="fas fa-key"></i> AI Service Configuration
+            </h3>
+            <p style="color: var(--champagne); margin-bottom: 1.5rem; font-size: 0.9rem;">
+                Enter your API credentials to enable AI-powered story enhancement.
+                <strong style="color: var(--art-gold);">Note:</strong> API keys are stored securely in the database.
+            </p>
+
+            <div class="form-group">
+                <label class="form-label" for="openai-api-key">OpenAI API Key</label>
+                <input type="password"
+                       id="openai-api-key"
+                       name="openai_key"
+                       class="form-input"
+                       placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                       value="{% if api_config and api_config.openai_key %}{{ api_config.openai_key }}{% endif %}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="anthropic-api-key">Anthropic API Key</label>
+                <input type="password"
+                       id="anthropic-api-key"
+                       name="anthropic_key"
+                       class="form-input"
+                       placeholder="sk-ant-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                       value="{% if api_config and api_config.anthropic_key %}{{ api_config.anthropic_key }}{% endif %}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="huggingface-api-key">Hugging Face API Key (Optional)</label>
+                <input type="password"
+                       id="huggingface-api-key"
+                       name="huggingface_key"
+                       class="form-input"
+                       placeholder="hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                       value="{% if api_config and api_config.huggingface_key %}{{ api_config.huggingface_key }}{% endif %}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="ai-model-preference">Preferred AI Model</label>
+                <select id="ai-model-preference" name="preferred_model" class="form-input form-select">
+                    <option value="gpt-4" {% if api_config and api_config.preferred_model == 'gpt-4' %}selected{% endif %}>GPT-4 (OpenAI)</option>
+                    <option value="gpt-3.5-turbo" {% if api_config and api_config.preferred_model == 'gpt-3.5-turbo' %}selected{% elif not api_config %}selected{% endif %}>GPT-3.5 Turbo (OpenAI)</option>
+                    <option value="claude-3-opus-20240229" {% if api_config and api_config.preferred_model == 'claude-3-opus-20240229' %}selected{% endif %}>Claude 3 Opus (Anthropic)</option>
+                    <option value="claude-3-sonnet-20240229" {% if api_config and api_config.preferred_model == 'claude-3-sonnet-20240229' %}selected{% endif %}>Claude 3 Sonnet (Anthropic)</option>
+                    <option value="claude-3-haiku-20240307" {% if api_config and api_config.preferred_model == 'claude-3-haiku-20240307' %}selected{% endif %}>Claude 3 Haiku (Anthropic)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="ai-temperature">Creativity Level (Temperature)</label>
+                <input type="range"
+                       id="ai-temperature"
+                       name="temperature"
+                       min="0"
+                       max="1"
+                       step="0.1"
+                       value="{% if api_config %}{{ api_config.temperature }}{% else %}0.7{% endif %}"
+                       class="form-input">
+                <div style="display: flex; justify-content: space-between; color: var(--smoke-gray); font-size: 0.8rem; margin-top: 0.5rem;">
+                    <span>Conservative</span>
+                    <span id="temperature-value">{% if api_config %}{{ api_config.temperature }}{% else %}0.7{% endif %}</span>
+                    <span>Creative</span>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="api-save-btn">
+            <i class="fas fa-save"></i> Save Configuration
+        </button>
+    </form>
+
+    <div style="margin-top: 3rem; padding: 2rem; background: rgba(54, 69, 79, 0.3); border-left: 4px solid var(--art-gold);">
+        <h4 style="color: var(--art-gold); margin-bottom: 1rem; font-family: var(--font-display);">
+            <i class="fas fa-info-circle"></i> Platform Statistics
+        </h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <div style="text-align: center;">
+                <div style="font-size: 2rem; color: var(--art-gold); font-weight: 700;">{{ total_users }}</div>
+                <div style="color: var(--champagne); font-size: 0.9rem;">Total Users</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 2rem; color: var(--art-gold); font-weight: 700;">{{ total_blogs }}</div>
+                <div style="color: var(--champagne); font-size: 0.9rem;">Published Stories</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 2rem; color: var(--art-gold); font-weight: 700;">{{ ai_usage_count }}</div>
+                <div style="color: var(--champagne); font-size: 0.9rem;">AI Enhancements</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Update temperature value display
+document.getElementById('ai-temperature').addEventListener('input', function() {
+    document.getElementById('temperature-value').textContent = this.value;
+});
+</script>
+{% endblock %}

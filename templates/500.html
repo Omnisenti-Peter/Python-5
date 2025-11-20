@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Server Error - Opinian{% endblock %}
+
+{% block content %}
+<div class="main-content" style="text-align: center; padding: 4rem 2rem;">
+    <div style="max-width: 600px; margin: 0 auto;">
+        <div style="font-size: 8rem; color: var(--art-gold); font-family: var(--font-display); font-weight: 900; line-height: 1; margin-bottom: 1rem;">
+            500
+        </div>
+
+        <h1 style="font-family: var(--font-display); color: var(--art-gold); font-size: 2.5rem; margin-bottom: 1rem;">
+            Something Went Wrong
+        </h1>
+
+        <p style="color: var(--champagne); font-size: 1.2rem; margin-bottom: 2rem; line-height: 1.6;">
+            Like a plot twist in a noir thriller, something unexpected has occurred. Our detectives are on the case.
+        </p>
+
+        <div style="margin: 3rem 0;">
+            <i class="fas fa-exclamation-triangle" style="font-size: 4rem; color: var(--smoke-gray); opacity: 0.3;"></i>
+        </div>
+
+        <p style="color: var(--smoke-gray); font-style: italic; margin-bottom: 2rem;">
+            "Every mystery has a solution, even technical ones..."
+        </p>
+
+        <div style="background: rgba(54, 69, 79, 0.3); padding: 1.5rem; border-left: 4px solid var(--art-gold); margin-bottom: 2rem; text-align: left;">
+            <p style="color: var(--champagne); margin-bottom: 0.5rem;"><strong>What you can do:</strong></p>
+            <ul style="color: var(--smoke-gray); list-style-position: inside;">
+                <li>Wait a moment and try again</li>
+                <li>Go back to the homepage</li>
+                <li>Check if you're logged in</li>
+                <li>Contact support if the problem persists</li>
+            </ul>
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a href="{{ url_for('index') }}" class="blog-btn">
+                <i class="fas fa-home"></i> Return Home
+            </a>
+
+            <button class="blog-btn secondary" onclick="window.location.reload()">
+                <i class="fas fa-redo"></i> Try Again
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}

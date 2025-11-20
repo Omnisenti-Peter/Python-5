@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title }} - Opinian{% endblock %}
+
+{% block content %}
+<div class="blog-container art-deco-border noir-shadow" style="max-width: 1000px; margin-top: 2rem;">
+    <!-- Post Header -->
+    <div class="blog-header">
+        <h1 class="blog-title">{{ post.title }}</h1>
+        <div class="blog-post-meta" style="text-align: center; font-size: 1.1rem;">
+            By {{ post.author.username }}
+            {% if post.ai_enhanced %}
+            <span style="color: var(--art-gold);"><i class="fas fa-robot"></i> AI Enhanced</span>
+            {% endif %}
+            • {{ post.created_at|format_datetime }}
+            {% if post.updated_at != post.created_at %}
+            <br><small>(Updated: {{ post.updated_at|format_datetime }})</small>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Post Content -->
+    <div class="blog-post-content" style="white-space: pre-wrap; font-size: 1.15rem; line-height: 1.9;">
+        {{ post.content }}
+    </div>
+
+    <!-- Post Actions -->
+    <div class="blog-post-actions" style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid var(--bronze);">
+        <button class="like-btn {% if current_user.is_authenticated and post.is_liked_by(current_user) %}liked{% endif %}"
+                onclick="toggleLike({{ post.id }}, this)"
+                {% if not current_user.is_authenticated %}disabled title="Login to like"{% endif %}>
+            <i class="fas fa-heart"></i>
+            <span class="like-count">{{ post.like_count }}</span> Likes
+        </button>
+
+        {% if current_user.is_authenticated and current_user.id == post.author_id %}
+        <a href="{{ url_for('edit_blog', post_id=post.id) }}" class="blog-post-btn">
+            <i class="fas fa-edit"></i> Edit Post
+        </a>
+        <button class="blog-post-btn" onclick="deletePost({{ post.id }})">
+            <i class="fas fa-trash"></i> Delete Post
+        </button>
+        {% endif %}
+
+        <a href="{{ url_for('index') }}" class="blog-post-btn">
+            <i class="fas fa-arrow-left"></i> Back to Stories
+        </a>
+    </div>
+
+    <!-- Comments Section -->
+    <div class="comments-section">
+        <h3 style="font-family: var(--font-display); color: var(--art-gold); margin-bottom: 1.5rem;">
+            <i class="fas fa-comments"></i> Comments ({{ comments|length }})
+        </h3>
+
+        <!-- Comment Form -->
+        {% if current_user.is_authenticated %}
+        <form method="POST" action="{{ url_for('add_comment', post_id=post.id) }}" class="comment-form">
+            <textarea name="content"
+                      class="comment-input"
+                      placeholder="Share your thoughts about this story..."
+                      required
+                      minlength="1"></textarea>
+            <button type="submit" class="blog-btn">
+                <i class="fas fa-paper-plane"></i> Post Comment
+            </button>
+        </form>
+        {% else %}
+        <p style="text-align: center; color: var(--smoke-gray); padding: 2rem; background: rgba(54, 69, 79, 0.3);">
+            <i class="fas fa-lock"></i> Please <a href="#" onclick="showLoginModal(); return false;" style="color: var(--art-gold);">login</a> to leave a comment
+        </p>
+        {% endif %}
+
+        <!-- Comments List -->
+        {% if comments %}
+        <div style="margin-top: 2rem;">
+            {% for comment in comments %}
+            <div class="comment">
+                <div class="comment-author">
+                    <i class="fas fa-user"></i> {{ comment.author.username }}
+                    <span class="comment-date">• {{ comment.created_at|format_datetime }}</span>
+                </div>
+                <div class="comment-content">
+                    {{ comment.content }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="text-align: center; color: var(--smoke-gray); padding: 2rem; margin-top: 2rem;">
+            <i class="fas fa-comment-slash"></i> No comments yet. Be the first to share your thoughts!
+        </p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleLike(postId, button) {
+    fetch(`/post/${postId}/like`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            button.classList.toggle('liked', data.liked);
+            button.querySelector('.like-count').textContent = data.like_count;
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function deletePost(postId) {
+    if (confirm('Are you sure you want to delete this blog post? This action cannot be undone.')) {
+        fetch(`/blog/delete/${postId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = '{{ url_for("index") }}';
+            } else {
+                alert(data.message || 'Failed to delete post');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to delete post');
+        });
+    }
+}
+</script>
+{% endblock %}

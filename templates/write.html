@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Write Your Story - Opinian{% endblock %}
+
+{% block content %}
+<div class="blog-container art-deco-border noir-shadow">
+    <div class="blog-header">
+        <h2 class="blog-title">
+            <i class="fas fa-feather-alt"></i> Craft Your Story
+        </h2>
+        <p class="blog-subtitle">Let your words dance across the page</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('create_blog') }}" id="blog-form">
+        <div class="blog-editor">
+            <input type="text"
+                   id="blog-title-input"
+                   name="title"
+                   class="blog-title-input"
+                   placeholder="Enter your blog title..."
+                   maxlength="200"
+                   required>
+
+            <textarea id="blog-content-input"
+                      name="content"
+                      class="blog-content-input"
+                      placeholder="Begin writing your masterpiece here...
+
+Remember the golden rules of storytelling:
+• Hook your readers from the first line
+• Paint vivid pictures with your words
+• Let your authentic voice shine through
+• End with impact that resonates"
+                      required></textarea>
+        </div>
+
+        <div class="blog-actions">
+            <button type="button" class="blog-btn secondary" onclick="saveDraft()">
+                <i class="fas fa-save"></i> Save Draft
+            </button>
+            <button type="submit" class="blog-btn" onclick="document.getElementById('publish-field').value='true'">
+                <i class="fas fa-paper-plane"></i> Publish Story
+            </button>
+            <button type="button" class="blog-btn secondary" onclick="clearForm()">
+                <i class="fas fa-trash"></i> Clear
+            </button>
+            <a href="{{ url_for('index') }}" class="blog-btn secondary">
+                <i class="fas fa-times"></i> Cancel
+            </a>
+        </div>
+
+        <input type="hidden" id="publish-field" name="publish" value="false">
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function saveDraft() {
+    document.getElementById('publish-field').value = 'false';
+    document.getElementById('blog-form').submit();
+}
+
+function clearForm() {
+    if (confirm('Are you sure you want to clear the form? This will remove all unsaved content.')) {
+        document.getElementById('blog-title-input').value = '';
+        document.getElementById('blog-content-input').value = '';
+    }
+}
+</script>
+{% endblock %}
