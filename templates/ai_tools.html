@@ -1,0 +1,518 @@
+{% extends "base.html" %}
+
+{% block title %}AI Writing Assistant - Opinian{% endblock %}
+
+{% block content %}
+<div class="section" style="padding-top: 100px; min-height: 100vh;">
+    <div class="container">
+        <div class="section-header" style="text-align: center; margin-bottom: 3rem;">
+            <h1 class="section-title">
+                <i class="fas fa-robot"></i> AI Writing Assistant
+            </h1>
+            <p class="section-subtitle">
+                Enhance your storytelling with intelligent suggestions, idea generation, and content optimization powered by advanced AI
+            </p>
+        </div>
+
+        <!-- AI Generator Container -->
+        <div id="aiGenerator"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Initialize AI Generator when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    window.aiGenerator = new AIGenerator('aiGenerator');
+
+    // Add page-specific animations
+    anime({
+        targets: '.section-header',
+        opacity: [0, 1],
+        translateY: [30, 0],
+        duration: 800,
+        delay: 200,
+        easing: 'easeOutCubic'
+    });
+});
+
+// AI Generator Class
+class AIGenerator {
+    constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        this.currentContent = null;
+        this.generationHistory = this.loadHistory();
+        this.init();
+    }
+
+    init() {
+        this.createUI();
+        this.setupEventListeners();
+        this.updateHistoryDisplay();
+    }
+
+    createUI() {
+        this.container.innerHTML = `
+            <!-- Generator Controls -->
+            <div class="card" style="padding: 2rem; margin-bottom: 2rem;">
+                <h2 style="font-family: var(--font-serif); color: var(--noir-gold); margin-bottom: 1.5rem;">
+                    <i class="fas fa-wand-magic-sparkles"></i> Content Generator
+                </h2>
+
+                <form id="generatorForm">
+                    <div class="form-group">
+                        <label class="form-label" for="contentType">Content Type</label>
+                        <select id="contentType" class="form-control" name="content_type">
+                            <option value="story">Story / Narrative</option>
+                            <option value="blog">Blog Post</option>
+                            <option value="article">Article</option>
+                            <option value="creative">Creative Writing</option>
+                            <option value="noir">Noir Mystery</option>
+                            <option value="character">Character Development</option>
+                            <option value="outline">Story Outline</option>
+                        </select>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" for="writingStyle">Writing Style</label>
+                            <select id="writingStyle" class="form-control" name="writing_style">
+                                <option value="professional">Professional</option>
+                                <option value="casual">Casual</option>
+                                <option value="academic">Academic</option>
+                                <option value="creative">Creative</option>
+                                <option value="noir" selected>Noir & Mysterious</option>
+                                <option value="journalistic">Journalistic</option>
+                                <option value="conversational">Conversational</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" for="contentLength">Content Length</label>
+                            <select id="contentLength" class="form-control" name="content_length">
+                                <option value="short">Short (300-500 words)</option>
+                                <option value="medium" selected>Medium (800-1200 words)</option>
+                                <option value="long">Long (1500-2500 words)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" for="targetAudience">Target Audience</label>
+                            <select id="targetAudience" class="form-control">
+                                <option value="general">General Audience</option>
+                                <option value="beginners">Beginners</option>
+                                <option value="intermediate">Intermediate</option>
+                                <option value="advanced">Advanced</option>
+                                <option value="professionals">Professionals</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="inputText">Your Ideas or Topic</label>
+                        <textarea id="inputText"
+                                  name="text"
+                                  class="form-control"
+                                  rows="8"
+                                  placeholder="Enter your story ideas, rough drafts, keywords, or topic here...
+
+Example:
+A detective in 1940s New York investigates mysterious disappearances at a speakeasy. The deeper he digs, the more he realizes nothing is as it seems.
+
+The AI will transform your ideas into a polished, engaging narrative."
+                                  required>{{ input_text if input_text else '' }}</textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%;" id="generateBtn">
+                        <i class="fas fa-magic"></i> Generate Content
+                    </button>
+                </form>
+            </div>
+
+            <!-- Generated Content -->
+            <div class="card" style="padding: 0; margin-bottom: 2rem; overflow: hidden;">
+                <!-- Results Header -->
+                <div style="background: var(--noir-black); padding: 1.5rem 2rem; border-bottom: 1px solid var(--noir-gold); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <h2 style="font-family: var(--font-serif); color: var(--noir-gold); margin: 0; font-size: 1.5rem;">
+                        <i class="fas fa-sparkles"></i> Generated Content
+                    </h2>
+                    <div style="display: flex; gap: 1rem;" id="contentActions">
+                        <button type="button" onclick="window.aiGenerator.showExportModal()" class="btn btn-outline" id="exportBtn" disabled>
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                        <button type="button" onclick="window.aiGenerator.useInEditor()" class="btn btn-primary" id="useEditorBtn" disabled>
+                            <i class="fas fa-edit"></i> Use in Editor
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Generation Status (Loading) -->
+                <div id="loadingState" style="display: none; align-items: center; justify-content: center; gap: 1rem; padding: 4rem 2rem; color: var(--noir-light-gray);">
+                    <div class="spinner" style="width: 30px; height: 30px; border: 3px solid var(--noir-gray); border-top: 3px solid var(--noir-gold); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <span>Generating content...</span>
+                </div>
+
+                <!-- Generated Content Area -->
+                <div id="generatedContent" style="padding: 2rem; min-height: 300px;">
+                    {% if enhanced_text %}
+                    <div class="content-result">
+                        <div style="background: rgba(114, 47, 55, 0.1); border-left: 3px solid var(--noir-burgundy); padding: 1rem; margin-bottom: 1.5rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                                <p style="color: var(--noir-gold); margin: 0; font-size: 0.9rem;">
+                                    <i class="fas fa-check-circle"></i> Content generated successfully!
+                                </p>
+                                <div style="color: var(--noir-light-gray); font-size: 0.85rem;" id="contentMeta">
+                                    <span style="margin-right: 1rem;"><i class="fas fa-font"></i> <span id="wordCount">0</span> words</span>
+                                    <span><i class="far fa-clock"></i> <span id="readingTime">0</span> min read</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="contentText" style="background: rgba(45, 45, 45, 0.3); padding: 1.5rem; border: 2px solid var(--noir-gray); min-height: 300px; max-height: 500px; overflow-y: auto; white-space: pre-wrap; line-height: 1.8; color: var(--noir-cream);">{{ enhanced_text }}</div>
+                    </div>
+                    {% else %}
+                    <!-- Empty State -->
+                    <div class="empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 2rem; color: var(--noir-light-gray); text-align: center;">
+                        <i class="fas fa-file-alt" style="font-size: 4rem; color: var(--noir-gray); margin-bottom: 1rem; opacity: 0.3;"></i>
+                        <p style="font-size: 1.2rem; margin-bottom: 0.5rem;">Your generated content will appear here</p>
+                        <small style="font-size: 0.9rem; color: var(--noir-gray);">Fill in the details above and click "Generate Content" to get started</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Generations -->
+            <div class="card" style="padding: 2rem;">
+                <h2 style="font-family: var(--font-serif); color: var(--noir-gold); margin-bottom: 1.5rem;">
+                    <i class="fas fa-history"></i> Recent Generations
+                </h2>
+                <div id="historyList"></div>
+            </div>
+        `;
+    }
+
+    setupEventListeners() {
+        document.getElementById('generatorForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.generateContent();
+        });
+    }
+
+    async generateContent() {
+        const form = document.getElementById('generatorForm');
+        const formData = new FormData(form);
+
+        const loadingState = document.getElementById('loadingState');
+        const generatedContent = document.getElementById('generatedContent');
+        const generateBtn = document.getElementById('generateBtn');
+
+        // Show loading state
+        generatedContent.style.display = 'none';
+        loadingState.style.display = 'block';
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = '<div class="spinner" style="display: inline-block; width: 16px; height: 16px; border: 2px solid var(--noir-black); border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div> Generating...';
+
+        try {
+            // Convert FormData to JSON
+            const data = {
+                text: formData.get('text'),
+                content_type: formData.get('content_type'),
+                writing_style: formData.get('writing_style'),
+                content_length: formData.get('content_length'),
+                target_audience: document.getElementById('targetAudience').value
+            };
+
+            const response = await fetch('{{ url_for("ai.enhance_with_ai") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                const content = result.enhanced_text;
+                this.displayGeneratedContent(content);
+                this.saveToHistory(content, data.text.substring(0, 100));
+                this.enableActions();
+            } else {
+                throw new Error(result.message || 'Generation failed');
+            }
+        } catch (error) {
+            console.error('Generation error:', error);
+            this.showNotification(error.message || 'Failed to generate content. Please try again.', 'error');
+        } finally {
+            loadingState.style.display = 'none';
+            generatedContent.style.display = 'block';
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = '<i class="fas fa-magic"></i> Generate Content';
+        }
+    }
+
+    displayGeneratedContent(content) {
+        const container = document.getElementById('generatedContent');
+        const wordCount = content.trim().split(/\s+/).length;
+        const readingTime = Math.ceil(wordCount / 200);
+
+        container.innerHTML = `
+            <div class="content-result" style="opacity: 0; transform: translateY(20px); animation: fadeInUp 0.6s ease forwards;">
+                <div style="background: rgba(114, 47, 55, 0.1); border-left: 3px solid var(--noir-burgundy); padding: 1rem; margin-bottom: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <p style="color: var(--noir-gold); margin: 0; font-size: 0.9rem;">
+                            <i class="fas fa-check-circle"></i> Content generated successfully!
+                        </p>
+                        <div style="color: var(--noir-light-gray); font-size: 0.85rem;">
+                            <span style="margin-right: 1rem;"><i class="fas fa-font"></i> ${wordCount} words</span>
+                            <span><i class="far fa-clock"></i> ${readingTime} min read</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="contentText" style="background: rgba(45, 45, 45, 0.3); padding: 1.5rem; border: 2px solid var(--noir-gray); min-height: 300px; max-height: 500px; overflow-y: auto; white-space: pre-wrap; line-height: 1.8; color: var(--noir-cream);">${content}</div>
+            </div>
+        `;
+
+        this.currentContent = content;
+    }
+
+    enableActions() {
+        document.getElementById('exportBtn').disabled = false;
+        document.getElementById('useEditorBtn').disabled = false;
+    }
+
+    useInEditor() {
+        if (!this.currentContent) return;
+
+        // Store content in localStorage for the editor
+        localStorage.setItem('opinian_ai_content', JSON.stringify({
+            content: this.currentContent,
+            timestamp: new Date().toISOString()
+        }));
+
+        // Redirect to editor page
+        window.location.href = '{{ url_for("blog.editor") }}';
+    }
+
+    showExportModal() {
+        if (!this.currentContent) return;
+
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3 class="modal-title"><i class="fas fa-download"></i> Export Content</h3>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Export Format</label>
+                        <select id="exportFormat" class="form-control">
+                            <option value="txt">Plain Text (.txt)</option>
+                            <option value="html">HTML Document (.html)</option>
+                            <option value="md">Markdown (.md)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="exportFilename">Filename</label>
+                        <input type="text" id="exportFilename" class="form-control" value="ai-generated-content">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem; padding: 1.5rem; border-top: 1px solid var(--noir-gray);">
+                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()" style="flex: 1;">Cancel</button>
+                    <button class="btn btn-primary" onclick="window.aiGenerator.performExport(document.getElementById('exportFormat').value, document.getElementById('exportFilename').value); this.closest('.modal-overlay').remove();" style="flex: 1;">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
+    }
+
+    performExport(format, filename) {
+        if (!this.currentContent) return;
+
+        let content, mimeType, extension;
+
+        switch (format) {
+            case 'txt':
+                content = this.currentContent;
+                mimeType = 'text/plain';
+                extension = '.txt';
+                break;
+            case 'html':
+                content = `<!DOCTYPE html>
+<html>
+<head>
+    <title>${filename}</title>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: 'Inter', sans-serif; margin: 40px; background: #0a0a0a; color: #f8f6f0; line-height: 1.8; }
+        h1 { font-family: 'Playfair Display', serif; color: #d4af37; }
+        .content { max-width: 800px; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <h1>${filename}</h1>
+        <pre style="white-space: pre-wrap; font-family: 'Inter', sans-serif;">${this.currentContent}</pre>
+    </div>
+</body>
+</html>`;
+                mimeType = 'text/html';
+                extension = '.html';
+                break;
+            case 'md':
+                content = `# ${filename}\n\n${this.currentContent}`;
+                mimeType = 'text/markdown';
+                extension = '.md';
+                break;
+        }
+
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename + extension;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        this.showNotification(`File exported as ${filename}${extension}`, 'success');
+    }
+
+    saveToHistory(content, topic) {
+        const item = {
+            id: Date.now(),
+            content: content,
+            topic: topic,
+            timestamp: new Date().toISOString(),
+            wordCount: content.trim().split(/\s+/).length
+        };
+
+        this.generationHistory.unshift(item);
+        if (this.generationHistory.length > 10) {
+            this.generationHistory = this.generationHistory.slice(0, 10);
+        }
+
+        localStorage.setItem('opinian_ai_history', JSON.stringify(this.generationHistory));
+        this.updateHistoryDisplay();
+    }
+
+    loadHistory() {
+        const stored = localStorage.getItem('opinian_ai_history');
+        return stored ? JSON.parse(stored) : [];
+    }
+
+    updateHistoryDisplay() {
+        const container = document.getElementById('historyList');
+
+        if (this.generationHistory.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: var(--noir-gray);">
+                    <i class="fas fa-history" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem;"></i>
+                    <p>No previous generations</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = this.generationHistory.map(item => `
+            <div style="background: rgba(45, 45, 45, 0.3); border-left: 3px solid var(--noir-gold); padding: 1rem; margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: start; gap: 1rem;">
+                    <div style="flex: 1;">
+                        <p style="color: var(--noir-cream); margin-bottom: 0.5rem; font-size: 0.95rem;">${item.topic}...</p>
+                        <div style="display: flex; gap: 1.5rem; font-size: 0.85rem; color: var(--noir-gray);">
+                            <span><i class="far fa-clock"></i> ${new Date(item.timestamp).toLocaleDateString()}</span>
+                            <span><i class="fas fa-font"></i> ${item.wordCount} words</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button onclick="window.aiGenerator.loadFromHistory(${item.id})" class="btn-icon" title="Load" style="background: transparent; border: 1px solid var(--noir-gray); color: var(--noir-cream); padding: 0.4rem 0.7rem; cursor: pointer; transition: var(--transition-quick);">
+                            <i class="fas fa-upload"></i>
+                        </button>
+                        <button onclick="window.aiGenerator.deleteFromHistory(${item.id})" class="btn-icon" title="Delete" style="background: transparent; border: 1px solid var(--noir-gray); color: var(--noir-cream); padding: 0.4rem 0.7rem; cursor: pointer; transition: var(--transition-quick);">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    loadFromHistory(itemId) {
+        const item = this.generationHistory.find(h => h.id === itemId);
+        if (item) {
+            this.displayGeneratedContent(item.content);
+            document.getElementById('inputText').value = item.topic;
+            this.enableActions();
+            this.showNotification('Content loaded from history', 'success');
+        }
+    }
+
+    deleteFromHistory(itemId) {
+        if (!confirm('Delete this item from history?')) return;
+
+        this.generationHistory = this.generationHistory.filter(h => h.id !== itemId);
+        localStorage.setItem('opinian_ai_history', JSON.stringify(this.generationHistory));
+        this.updateHistoryDisplay();
+        this.showNotification('Item deleted from history', 'success');
+    }
+
+    showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 100px;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            background: var(--noir-charcoal);
+            border-left: 4px solid ${type === 'success' ? '#4ade80' : type === 'error' ? '#ef4444' : 'var(--noir-gold)'};
+            color: var(--noir-cream);
+            font-weight: 500;
+            z-index: 1002;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        `;
+        notification.textContent = message;
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.style.transform = 'translateX(0)';
+        }, 100);
+
+        setTimeout(() => {
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (document.body.contains(notification)) {
+                    document.body.removeChild(notification);
+                }
+            }, 300);
+        }, 3000);
+    }
+}
+
+// Add animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    @keyframes fadeInUp {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

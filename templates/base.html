@@ -3,63 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Opinian - Where Words Find Their Voice{% endblock %}</title>
+    <title>{% block title %}Opinian - Where Stories Come Alive{% endblock %}</title>
 
-    <!-- Google Fonts for 1920s/1940s typography -->
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Sans+Pro:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Core Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/typed.js/2.0.12/typed.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://unpkg.com/splitting@1.0.6/dist/splitting.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/splitting@1.0.6/dist/splitting.css">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/opinian_v2.css') }}">
 
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Navigation Bar -->
-    <nav class="main-nav">
+    <!-- Navigation -->
+    <nav class="navbar">
         <div class="nav-container">
-            <div class="brand">
-                <i class="fas fa-feather-alt"></i> Opinian
-            </div>
-            <div class="nav-links">
-                <a href="{{ url_for('index') }}" class="nav-link">
-                    <i class="fas fa-home"></i> Home
-                </a>
+            <a href="{{ url_for('main.index') }}" class="logo">
+                <i class="fas fa-feather-alt"></i> OPINIAN
+            </a>
+            <ul class="nav-links">
+                <li><a href="{{ url_for('main.index') }}" {% if request.endpoint == 'main.index' %}class="active"{% endif %}><i class="fas fa-home"></i> Home</a></li>
                 {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('write_blog') }}" class="nav-link">
-                        <i class="fas fa-pen-fancy"></i> Write Blog
-                    </a>
-                    <a href="{{ url_for('my_posts') }}" class="nav-link">
-                        <i class="fas fa-folder"></i> My Posts
-                    </a>
-                    <a href="{{ url_for('ai_page') }}" class="nav-link">
-                        <i class="fas fa-robot"></i> AI Assistant
-                    </a>
+                    <li><a href="{{ url_for('blog.my_posts') }}" {% if request.endpoint == 'blog.my_posts' %}class="active"{% endif %}><i class="fas fa-folder-open"></i> My Posts</a></li>
+                    <li><a href="{{ url_for('ai.ai_tools') }}" {% if request.endpoint == 'ai.ai_tools' %}class="active"{% endif %}><i class="fas fa-robot"></i> AI Assistant</a></li>
+                    <li><a href="{{ url_for('main.about') }}" {% if request.endpoint == 'main.about' %}class="active"{% endif %}><i class="fas fa-info-circle"></i> About</a></li>
+                    <li><a href="{{ url_for('blog.editor') }}" class="btn {% if request.endpoint == 'blog.editor' %}btn-primary{% else %}btn-outline{% endif %}" style="padding: 0.5rem 1rem;"><i class="fas fa-pen-fancy"></i> Write</a></li>
                     {% if current_user.is_admin %}
-                        <a href="{{ url_for('admin_panel') }}" class="nav-link">
-                            <i class="fas fa-user-crown"></i> Admin
-                        </a>
+                        <li><a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-outline" style="padding: 0.5rem 1rem;"><i class="fas fa-chart-line"></i> Dashboard</a></li>
                     {% endif %}
-                    <a href="{{ url_for('logout') }}" class="nav-link">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
+                    <li><a href="{{ url_for('auth.logout') }}" class="btn btn-secondary" style="padding: 0.5rem 1rem;"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                 {% else %}
-                    <a href="#" class="nav-link" onclick="showLoginModal(); return false;">
-                        <i class="fas fa-sign-in-alt"></i> Login
-                    </a>
+                    <li><a href="#featured"><i class="fas fa-book-open"></i> Blogs</a></li>
+                    <li><a href="{{ url_for('ai.ai_tools') }}" {% if request.endpoint == 'ai.ai_tools' %}class="active"{% endif %}><i class="fas fa-robot"></i> AI Assistant</a></li>
+                    <li><a href="{{ url_for('main.about') }}" {% if request.endpoint == 'main.about' %}class="active"{% endif %}><i class="fas fa-info-circle"></i> About</a></li>
+                    <li><a href="{{ url_for('auth.login') }}" class="btn btn-secondary" style="padding: 0.5rem 1rem;"><i class="fas fa-sign-in-alt"></i> Login</a></li>
+                    <li><a href="{{ url_for('auth.register') }}" class="btn btn-primary" style="padding: 0.5rem 1rem;"><i class="fas fa-user-plus"></i> Get Started</a></li>
                 {% endif %}
-            </div>
+            </ul>
         </div>
     </nav>
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            <div class="main-content" style="padding-top: 1rem;">
+            <div style="position: fixed; top: 100px; right: 20px; z-index: 9999; max-width: 400px;">
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">
+                    <div class="alert alert-{{ category }}" style="margin-bottom: 10px;">
                         {{ message }}
                     </div>
                 {% endfor %}
@@ -70,114 +69,49 @@
     <!-- Main Content -->
     {% block content %}{% endblock %}
 
-    <!-- Login/Registration Modal -->
-    {% if not current_user.is_authenticated %}
-    <div id="login-modal" class="modal hidden">
-        <div class="modal-overlay" onclick="hideLoginModal()"></div>
-        <div class="auth-container art-deco-border noir-shadow">
-            <h2 class="auth-title">
-                <i class="fas fa-theater-masks"></i> Welcome to Opinian
-            </h2>
-
-            <!-- Login Form -->
-            <form id="login-form" method="POST" action="{{ url_for('login') }}">
-                <div class="form-group">
-                    <label class="form-label" for="login-username">Username</label>
-                    <input type="text" id="login-username" name="username" class="form-input" placeholder="Enter your username" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="login-password">Password</label>
-                    <input type="password" id="login-password" name="password" class="form-input" placeholder="Enter your password" required>
-                </div>
-                <button type="submit" class="auth-submit">
-                    <i class="fas fa-sign-in-alt"></i> Sign In
-                </button>
-            </form>
-
-            <div class="auth-toggle">
-                <p>Don't have an account? <a href="#" onclick="toggleAuthForm(); return false;">Register here</a></p>
-            </div>
-
-            <!-- Registration Form -->
-            <form id="register-form" class="hidden" method="POST" action="{{ url_for('register') }}">
-                <div class="form-group">
-                    <label class="form-label" for="register-username">Username</label>
-                    <input type="text" id="register-username" name="username" class="form-input" placeholder="Choose a username" required minlength="3">
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="register-email">Email</label>
-                    <input type="email" id="register-email" name="email" class="form-input" placeholder="Enter your email" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="register-password">Password</label>
-                    <input type="password" id="register-password" name="password" class="form-input" placeholder="Create a password" required minlength="6">
-                </div>
-                <button type="submit" class="auth-submit">
-                    <i class="fas fa-user-plus"></i> Create Account
-                </button>
-            </form>
-
-            <div style="margin-top: 2rem; padding: 1rem; background: rgba(54, 69, 79, 0.3); border-left: 4px solid var(--art-gold);">
-                <p style="color: var(--champagne); font-size: 0.9rem; margin-bottom: 0.5rem;"><strong>Demo Accounts:</strong></p>
-                <p style="color: var(--smoke-gray); font-size: 0.8rem;">
-                    <strong>Admin:</strong> admin / admin123<br>
-                    <strong>User:</strong> user / user123
-                </p>
-            </div>
-        </div>
-    </div>
-    {% endif %}
 
     <!-- Footer -->
-    <footer style="background: var(--noir-black); padding: 2rem 0; text-align: center; border-top: 2px solid var(--art-gold); margin-top: 4rem;">
-        <div class="main-content">
-            <p style="color: var(--smoke-gray); font-size: 0.9rem; margin-bottom: 0.5rem;">
-                <i class="fas fa-feather-alt"></i> Opinian - Where Every Story Matters
+    <footer class="footer" style="background: var(--noir-black); padding: 4rem 0 2rem; border-top: 1px solid var(--noir-gold);">
+        <div class="footer-container" style="max-width: var(--container-max); margin: 0 auto; padding: 0 2rem; text-align: center;">
+            <div class="footer-logo" style="font-family: var(--font-serif); font-size: 2rem; font-weight: 700; color: var(--noir-gold); margin-bottom: 1rem; letter-spacing: 0.1em;">
+                Opinian
+            </div>
+            <p class="footer-text" style="color: var(--noir-light-gray); font-size: 1.1rem; font-style: italic; margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+                Where every story finds its voice and every voice tells a story.
             </p>
-            <p style="color: var(--smoke-gray); font-size: 0.8rem; font-style: italic;">
-                "In the golden age of words, we find our voice"
-            </p>
+            <div class="footer-links" style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                <a href="{{ url_for('main.about') }}" style="color: var(--noir-cream); text-decoration: none; transition: color 0.3s ease; font-size: 0.95rem;">About</a>
+                <a href="#" style="color: var(--noir-cream); text-decoration: none; transition: color 0.3s ease; font-size: 0.95rem;">Privacy</a>
+                <a href="#" style="color: var(--noir-cream); text-decoration: none; transition: color 0.3s ease; font-size: 0.95rem;">Terms</a>
+                <a href="#" style="color: var(--noir-cream); text-decoration: none; transition: color 0.3s ease; font-size: 0.95rem;">Contact</a>
+            </div>
+            <div class="footer-copyright" style="color: var(--noir-gray); font-size: 0.85rem; padding-top: 2rem; border-top: 1px solid var(--noir-dark-gray);">
+                © 2024 Opinian. All rights reserved. Crafted with passion for storytelling.
+            </div>
         </div>
     </footer>
 
-    <!-- JavaScript -->
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    {% block extra_js %}{% endblock %}
-
     <style>
-        /* Modal styles */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.hidden {
-            display: none;
-        }
-
-        .modal-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(5px);
-        }
-
-        .modal .auth-container {
-            position: relative;
-            z-index: 1001;
-            max-height: 90vh;
-            overflow-y: auto;
+        .footer-links a:hover {
+            color: var(--noir-gold);
         }
     </style>
+
+    <!-- Core JavaScript -->
+    <script>
+        // Auto-hide alerts
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    alert.style.opacity = '0';
+                    alert.style.transition = 'opacity 0.5s ease';
+                    setTimeout(() => alert.remove(), 500);
+                }, 5000);
+            });
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

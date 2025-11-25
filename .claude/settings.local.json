@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(\".venv\\Scripts\\activate\")",
+      "Bash(\".venv\\Scripts\\python.exe\" -m pip install -r requirements.txt)",
+      "Bash(\".venv\\Scripts\\python.exe\" app.py)",
+      "Bash(.venvScriptspython.exe app.py)",
+      "Bash(\".venv\\Scripts\\python.exe\" -c \"from models import *; from extensions import db; import inspect; tables = [User, BlogPost, Category, Tag, MediaFile, Comment, Like, AIPrompt, AIUsageLog, LLMConfig, AnalyticsEvent, PageView, UserSession, SystemSetting, AuditLog, APIConfiguration]; print(''Tables in our models.py:''); [print(f''  - {t.__tablename__}'') for t in tables]\")",
+      "Bash(sqlite3:*)",
+      "Bash(static/uploads/README.md)",
+      "WebFetch(domain:127.0.0.1)",
+      "Bash(temp_content.txt)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -74,12 +74,18 @@ class AIService:
                 logger.error(f'Error initializing Anthropic client: {str(e)}')
                 self.anthropic_client = None
 
-    def enhance_story(self, text: str) -> str:
+    def enhance_story(self, text: str, content_type: str = 'story',
+                     writing_style: str = 'noir', content_length: str = 'medium',
+                     target_audience: str = 'general') -> str:
         """
         Enhance story text using AI
 
         Args:
             text: Original story text to enhance
+            content_type: Type of content (story, blog, article, etc.)
+            writing_style: Writing style (professional, casual, noir, etc.)
+            content_length: Desired length (short, medium, long)
+            target_audience: Target audience level
 
         Returns:
             Enhanced story text
@@ -89,39 +95,83 @@ class AIService:
 
         # Determine which AI service to use based on preferred model
         if 'gpt' in self.preferred_model.lower() and self.openai_client:
-            return self._enhance_with_openai(text)
+            return self._enhance_with_openai(text, content_type, writing_style, content_length, target_audience)
         elif 'claude' in self.preferred_model.lower() and self.anthropic_client:
-            return self._enhance_with_anthropic(text)
+            return self._enhance_with_anthropic(text, content_type, writing_style, content_length, target_audience)
         else:
             # Fallback to whichever client is available
             if self.openai_client:
-                return self._enhance_with_openai(text)
+                return self._enhance_with_openai(text, content_type, writing_style, content_length, target_audience)
             elif self.anthropic_client:
-                return self._enhance_with_anthropic(text)
+                return self._enhance_with_anthropic(text, content_type, writing_style, content_length, target_audience)
             else:
                 raise RuntimeError('No AI service configured. Please add API keys in the admin panel.')
 
-    def _enhance_with_openai(self, text: str) -> str:
+    def _enhance_with_openai(self, text: str, content_type: str, writing_style: str,
+                            content_length: str, target_audience: str) -> str:
         """Enhance text using OpenAI API"""
         try:
-            system_prompt = """You are a creative writing assistant specializing in 1920s and 1940s noir storytelling.
-Your task is to enhance the given text with:
-- Rich, evocative language reminiscent of the Jazz Age and Film Noir era
-- Vivid descriptions that paint atmospheric scenes
-- Engaging narrative flow
-- Period-appropriate vocabulary and style
-- Emotional depth and compelling characters
+            # Build dynamic system prompt based on parameters
+            style_descriptions = {
+                'professional': 'professional, polished business writing with clear structure',
+                'casual': 'conversational, friendly tone with accessible language',
+                'academic': 'scholarly, well-researched with formal academic tone',
+                'creative': 'imaginative, artistic expression with vivid imagery',
+                'noir': 'rich, evocative language reminiscent of 1920s-1940s Film Noir era with atmospheric scenes',
+                'journalistic': 'objective, fact-based reporting style with clear information',
+                'conversational': 'natural, dialogue-like tone as if speaking to a friend'
+            }
 
-Maintain the original story's core message and intent while elevating the prose quality."""
+            length_targets = {
+                'short': '300-500 words',
+                'medium': '800-1200 words',
+                'long': '1500-2500 words'
+            }
+
+            audience_descriptions = {
+                'general': 'general audience with clear, accessible language',
+                'beginners': 'beginners with simple explanations and foundational concepts',
+                'intermediate': 'intermediate readers with moderate complexity',
+                'advanced': 'advanced readers with sophisticated concepts and terminology',
+                'professionals': 'industry professionals with technical depth and expertise'
+            }
+
+            content_type_instructions = {
+                'story': 'a narrative story with plot, characters, and engaging storytelling',
+                'blog': 'a blog post with engaging hooks, clear sections, and conversational flow',
+                'article': 'an informative article with structured sections and well-researched content',
+                'creative': 'creative writing with artistic expression and imaginative elements',
+                'noir': 'a noir mystery with atmospheric tension, compelling characters, and shadowy intrigue',
+                'character': 'character development with psychological depth, motivations, and backstory',
+                'outline': 'a structured story outline with plot points, character arcs, and scene breakdowns'
+            }
+
+            style_desc = style_descriptions.get(writing_style, style_descriptions['noir'])
+            length_target = length_targets.get(content_length, '800-1200 words')
+            audience_desc = audience_descriptions.get(target_audience, 'general audience')
+            content_instruction = content_type_instructions.get(content_type, 'engaging content')
+
+            system_prompt = f"""You are a professional writing assistant. Transform the provided text into {content_instruction}.
+
+Writing Requirements:
+- Style: {style_desc}
+- Target Length: {length_target}
+- Target Audience: {audience_desc}
+- Maintain the original message and intent
+- Create engaging, well-structured content
+- Use appropriate vocabulary and tone for the audience level"""
+
+            max_tokens_map = {'short': 800, 'medium': 2000, 'long': 3500}
+            max_tokens = max_tokens_map.get(content_length, 2000)
 
             response = self.openai_client.chat.completions.create(
                 model=self.preferred_model,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Please enhance this story:\n\n{text}"}
+                    {"role": "user", "content": f"Transform this into {content_instruction}:\n\n{text}"}
                 ],
                 temperature=self.temperature,
-                max_tokens=2000
+                max_tokens=max_tokens
             )
 
             enhanced_text = response.choices[0].message.content.strip()
@@ -132,28 +182,72 @@ Maintain the original story's core message and intent while elevating the prose 
             logger.error(f'OpenAI enhancement error: {str(e)}')
             raise RuntimeError(f'AI enhancement failed: {str(e)}')
 
-    def _enhance_with_anthropic(self, text: str) -> str:
+    def _enhance_with_anthropic(self, text: str, content_type: str, writing_style: str,
+                                content_length: str, target_audience: str) -> str:
         """Enhance text using Anthropic Claude API"""
         try:
-            system_prompt = """You are a creative writing assistant specializing in 1920s and 1940s noir storytelling.
-Your task is to enhance the given text with:
-- Rich, evocative language reminiscent of the Jazz Age and Film Noir era
-- Vivid descriptions that paint atmospheric scenes
-- Engaging narrative flow
-- Period-appropriate vocabulary and style
-- Emotional depth and compelling characters
+            # Build dynamic system prompt (same logic as OpenAI)
+            style_descriptions = {
+                'professional': 'professional, polished business writing with clear structure',
+                'casual': 'conversational, friendly tone with accessible language',
+                'academic': 'scholarly, well-researched with formal academic tone',
+                'creative': 'imaginative, artistic expression with vivid imagery',
+                'noir': 'rich, evocative language reminiscent of 1920s-1940s Film Noir era with atmospheric scenes',
+                'journalistic': 'objective, fact-based reporting style with clear information',
+                'conversational': 'natural, dialogue-like tone as if speaking to a friend'
+            }
 
-Maintain the original story's core message and intent while elevating the prose quality."""
+            length_targets = {
+                'short': '300-500 words',
+                'medium': '800-1200 words',
+                'long': '1500-2500 words'
+            }
+
+            audience_descriptions = {
+                'general': 'general audience with clear, accessible language',
+                'beginners': 'beginners with simple explanations and foundational concepts',
+                'intermediate': 'intermediate readers with moderate complexity',
+                'advanced': 'advanced readers with sophisticated concepts and terminology',
+                'professionals': 'industry professionals with technical depth and expertise'
+            }
+
+            content_type_instructions = {
+                'story': 'a narrative story with plot, characters, and engaging storytelling',
+                'blog': 'a blog post with engaging hooks, clear sections, and conversational flow',
+                'article': 'an informative article with structured sections and well-researched content',
+                'creative': 'creative writing with artistic expression and imaginative elements',
+                'noir': 'a noir mystery with atmospheric tension, compelling characters, and shadowy intrigue',
+                'character': 'character development with psychological depth, motivations, and backstory',
+                'outline': 'a structured story outline with plot points, character arcs, and scene breakdowns'
+            }
+
+            style_desc = style_descriptions.get(writing_style, style_descriptions['noir'])
+            length_target = length_targets.get(content_length, '800-1200 words')
+            audience_desc = audience_descriptions.get(target_audience, 'general audience')
+            content_instruction = content_type_instructions.get(content_type, 'engaging content')
+
+            system_prompt = f"""You are a professional writing assistant. Transform the provided text into {content_instruction}.
+
+Writing Requirements:
+- Style: {style_desc}
+- Target Length: {length_target}
+- Target Audience: {audience_desc}
+- Maintain the original message and intent
+- Create engaging, well-structured content
+- Use appropriate vocabulary and tone for the audience level"""
+
+            max_tokens_map = {'short': 800, 'medium': 2000, 'long': 3500}
+            max_tokens = max_tokens_map.get(content_length, 2000)
 
             message = self.anthropic_client.messages.create(
                 model=self.preferred_model,
-                max_tokens=2000,
+                max_tokens=max_tokens,
                 temperature=self.temperature,
                 system=system_prompt,
                 messages=[
                     {
                         "role": "user",
-                        "content": f"Please enhance this story:\n\n{text}"
+                        "content": f"Transform this into {content_instruction}:\n\n{text}"
                     }
                 ]
             )

@@ -1,48 +1,46 @@
 {% extends "base.html" %}
 
-{% block title %}Server Error - Opinian{% endblock %}
+{% block title %}500 - Server Error | Opinian{% endblock %}
 
 {% block content %}
-<div class="main-content" style="text-align: center; padding: 4rem 2rem;">
-    <div style="max-width: 600px; margin: 0 auto;">
-        <div style="font-size: 8rem; color: var(--art-gold); font-family: var(--font-display); font-weight: 900; line-height: 1; margin-bottom: 1rem;">
+<div style="min-height: 80vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--noir-black) 0%, var(--noir-dark-gray) 100%); padding: 2rem;">
+    <div style="text-align: center; max-width: 600px; padding: 3rem;">
+        <!-- 500 Number -->
+        <div style="font-family: var(--font-serif); font-size: 8rem; font-weight: 800; color: var(--noir-gold); line-height: 1; margin-bottom: 1rem; text-shadow: 0 0 30px rgba(212, 175, 55, 0.3);">
             500
         </div>
 
-        <h1 style="font-family: var(--font-display); color: var(--art-gold); font-size: 2.5rem; margin-bottom: 1rem;">
-            Something Went Wrong
+        <!-- Icon -->
+        <div style="margin-bottom: 2rem;">
+            <i class="fas fa-exclamation-triangle" style="font-size: 4rem; color: var(--noir-cream); opacity: 0.6;"></i>
+        </div>
+
+        <!-- Heading -->
+        <h1 style="font-family: var(--font-serif); font-size: 2.5rem; color: var(--noir-cream); margin-bottom: 1rem; font-weight: 600;">
+            A Plot Twist Occurred
         </h1>
 
-        <p style="color: var(--champagne); font-size: 1.2rem; margin-bottom: 2rem; line-height: 1.6;">
-            Like a plot twist in a noir thriller, something unexpected has occurred. Our detectives are on the case.
+        <!-- Message -->
+        <p style="color: var(--noir-light-gray); font-size: 1.2rem; line-height: 1.8; margin-bottom: 3rem; font-style: italic;">
+            Our storytelling engine encountered an unexpected chapter. We're working to get the narrative back on track. Please try again in a moment.
         </p>
 
-        <div style="margin: 3rem 0;">
-            <i class="fas fa-exclamation-triangle" style="font-size: 4rem; color: var(--smoke-gray); opacity: 0.3;"></i>
-        </div>
-
-        <p style="color: var(--smoke-gray); font-style: italic; margin-bottom: 2rem;">
-            "Every mystery has a solution, even technical ones..."
-        </p>
-
-        <div style="background: rgba(54, 69, 79, 0.3); padding: 1.5rem; border-left: 4px solid var(--art-gold); margin-bottom: 2rem; text-align: left;">
-            <p style="color: var(--champagne); margin-bottom: 0.5rem;"><strong>What you can do:</strong></p>
-            <ul style="color: var(--smoke-gray); list-style-position: inside;">
-                <li>Wait a moment and try again</li>
-                <li>Go back to the homepage</li>
-                <li>Check if you're logged in</li>
-                <li>Contact support if the problem persists</li>
-            </ul>
-        </div>
-
+        <!-- Action Buttons -->
         <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-            <a href="{{ url_for('index') }}" class="blog-btn">
+            <a href="{{ url_for('main.index') }}" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem;">
                 <i class="fas fa-home"></i> Return Home
             </a>
-
-            <button class="blog-btn secondary" onclick="window.location.reload()">
+            <a href="javascript:location.reload()" class="btn btn-outline" style="padding: 1rem 2rem; font-size: 1.1rem; border-color: var(--noir-gold); color: var(--noir-gold);">
                 <i class="fas fa-redo"></i> Try Again
-            </button>
+            </a>
+        </div>
+
+        <!-- Decorative Element -->
+        <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--noir-dark-gray);">
+            <p style="color: var(--noir-gray); font-size: 0.9rem;">
+                <i class="fas fa-feather-alt" style="color: var(--noir-gold);"></i>
+                Even the best stories need a rewrite sometimes
+            </p>
         </div>
     </div>
 </div>

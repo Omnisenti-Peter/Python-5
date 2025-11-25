@@ -1,0 +1,460 @@
+{% extends "base.html" %}
+
+{% block title %}Blog Editor - Opinian{% endblock %}
+
+{% block content %}
+<div class="section" style="padding-top: 100px; min-height: 100vh;">
+    <div class="container">
+        <div class="section-header">
+            <h1 class="section-title">
+                <i class="fas fa-pen-fancy"></i> Craft Your Story
+            </h1>
+            <p class="section-subtitle">
+                Let the words flow like shadows in the night
+            </p>
+        </div>
+
+        <form method="POST" action="{{ url_for('blog.edit_blog', post_id=post.id) if post else url_for('blog.create_blog') }}" id="blogForm">
+            <!-- Title Input -->
+            <div class="form-group">
+                <label class="form-label" for="blogTitle">Story Title</label>
+                <input type="text"
+                       id="blogTitle"
+                       name="title"
+                       class="form-control"
+                       placeholder="Enter your captivating title..."
+                       value="{{ post.title if post else '' }}"
+                       required
+                       maxlength="200"
+                       style="font-family: var(--font-serif); font-size: 1.5rem; font-weight: 600;">
+            </div>
+
+            <!-- Rich Text Editor -->
+            <div class="form-group">
+                <label class="form-label">Story Content</label>
+
+                <!-- Editor Toolbar -->
+                <div style="background: var(--noir-dark-gray); border: 2px solid var(--noir-gray); padding: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: -2px;">
+                    <button type="button" onclick="formatDoc('bold')" class="btn-icon" title="Bold (Ctrl+B)">
+                        <i class="fas fa-bold"></i>
+                    </button>
+                    <button type="button" onclick="formatDoc('italic')" class="btn-icon" title="Italic (Ctrl+I)">
+                        <i class="fas fa-italic"></i>
+                    </button>
+                    <button type="button" onclick="formatDoc('underline')" class="btn-icon" title="Underline (Ctrl+U)">
+                        <i class="fas fa-underline"></i>
+                    </button>
+                    <button type="button" onclick="formatDoc('strikeThrough')" class="btn-icon" title="Strikethrough">
+                        <i class="fas fa-strikethrough"></i>
+                    </button>
+                    <span style="width: 1px; background: var(--noir-gray); margin: 0 0.25rem;"></span>
+                    <button type="button" onclick="formatDoc('insertUnorderedList')" class="btn-icon" title="Bullet List">
+                        <i class="fas fa-list-ul"></i>
+                    </button>
+                    <button type="button" onclick="formatDoc('insertOrderedList')" class="btn-icon" title="Numbered List">
+                        <i class="fas fa-list-ol"></i>
+                    </button>
+                    <span style="width: 1px; background: var(--noir-gray); margin: 0 0.25rem;"></span>
+                    <button type="button" onclick="formatDoc('justifyLeft')" class="btn-icon" title="Align Left">
+                        <i class="fas fa-align-left"></i>
+                    </button>
+                    <button type="button" onclick="formatDoc('justifyCenter')" class="btn-icon" title="Align Center">
+                        <i class="fas fa-align-center"></i>
+                    </button>
+                    <button type="button" onclick="formatDoc('justifyRight')" class="btn-icon" title="Align Right">
+                        <i class="fas fa-align-right"></i>
+                    </button>
+                    <span style="width: 1px; background: var(--noir-gray); margin: 0 0.25rem;"></span>
+                    <button type="button" onclick="insertLink()" class="btn-icon" title="Insert Link">
+                        <i class="fas fa-link"></i>
+                    </button>
+                    <button type="button" onclick="insertImage()" class="btn-icon" title="Insert Image">
+                        <i class="fas fa-image"></i>
+                    </button>
+                    <span style="width: 1px; background: var(--noir-gray); margin: 0 0.25rem;"></span>
+                    <button type="button" onclick="formatDoc('undo')" class="btn-icon" title="Undo">
+                        <i class="fas fa-undo"></i>
+                    </button>
+                    <button type="button" onclick="formatDoc('redo')" class="btn-icon" title="Redo">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                </div>
+                <input type="file" id="imageUpload" accept="image/*" style="display: none;" onchange="handleImageUpload(this)">
+
+                <!-- Content Editor -->
+                <div id="editor"
+                     contenteditable="true"
+                     class="form-control"
+                     style="min-height: 400px; white-space: pre-wrap; overflow-y: auto; max-height: 600px;"
+                     placeholder="Begin your story here... Let the narrative unfold."
+                     oninput="isDirty = true; updateWordCount();">{{ post.content if post else '' }}</div>
+
+                <input type="hidden" id="contentField" name="content">
+                <input type="hidden" name="publish" id="publishField" value="false">
+            </div>
+
+            <!-- Stats & Actions -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-top: 1rem;">
+                <div style="display: flex; gap: 2rem; color: var(--noir-light-gray); font-size: 0.9rem;">
+                    <span><i class="fas fa-font"></i> <span id="wordCount">0</span> words</span>
+                    <span><i class="far fa-clock"></i> <span id="readingTime">0</span> min read</span>
+                    <span id="saveStatus" style="color: var(--noir-gold);"><i class="fas fa-save"></i> Unsaved</span>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button type="button" onclick="saveDraft()" class="btn btn-secondary">
+                        <i class="fas fa-save"></i> Save Draft
+                    </button>
+                    <button type="submit" class="btn btn-primary" onclick="document.getElementById('publishField').value='true'">
+                        <i class="fas fa-paper-plane"></i> Publish Story
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .btn-icon {
+        background: transparent;
+        border: 1px solid var(--noir-gray);
+        color: var(--noir-cream);
+        padding: 0.4rem 0.7rem;
+        cursor: pointer;
+        transition: var(--transition-quick);
+    }
+
+    .btn-icon:hover {
+        background: var(--noir-gold);
+        color: var(--noir-black);
+        border-color: var(--noir-gold);
+    }
+
+    .btn-icon:active,
+    .btn-icon.active {
+        background: var(--noir-gold);
+        color: var(--noir-black);
+    }
+
+    #editor:empty:before {
+        content: attr(placeholder);
+        color: var(--noir-gray);
+        font-style: italic;
+    }
+
+    #editor:focus {
+        outline: none;
+    }
+
+    #editor img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 1.5rem 0;
+        border: 2px solid var(--noir-gray);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        transition: var(--transition-quick);
+    }
+
+    #editor img:hover {
+        border-color: var(--noir-gold);
+        box-shadow: 0 0 20px var(--noir-gold-glow);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let isDirty = false;
+
+    // Format document
+    function formatDoc(cmd, value = null) {
+        document.execCommand(cmd, false, value);
+        isDirty = true;
+        updateSaveStatus();
+    }
+
+    // Insert link
+    function insertLink() {
+        const url = prompt('Enter URL:');
+        if (url) {
+            formatDoc('createLink', url);
+        }
+    }
+
+    // Insert image
+    function insertImage() {
+        document.getElementById('imageUpload').click();
+    }
+
+    // Handle image upload
+    async function handleImageUpload(input) {
+        if (!input.files || !input.files[0]) return;
+
+        const file = input.files[0];
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            alert('Please select an image file');
+            return;
+        }
+
+        // Validate file size (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Image size must be less than 5MB');
+            return;
+        }
+
+        // Show loading state
+        const status = document.getElementById('saveStatus');
+        status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading image...';
+        status.style.color = '#ffc107';
+
+        try {
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const response = await fetch('{{ url_for("blog.upload_image") }}', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Insert image into editor
+                const img = document.createElement('img');
+                img.src = data.url;
+                img.alt = data.filename;
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+                img.style.display = 'block';
+                img.style.margin = '1rem 0';
+
+                const editor = document.getElementById('editor');
+                editor.appendChild(img);
+                editor.appendChild(document.createElement('br'));
+
+                // Update status
+                status.innerHTML = '<i class="fas fa-check"></i> Image uploaded';
+                status.style.color = 'var(--noir-green, #28a745)';
+
+                setTimeout(() => {
+                    updateSaveStatus();
+                }, 2000);
+
+                isDirty = true;
+            } else {
+                throw new Error(data.message || 'Upload failed');
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            status.innerHTML = '<i class="fas fa-times"></i> Upload failed';
+            status.style.color = '#dc3545';
+            alert('Failed to upload image: ' + error.message);
+
+            setTimeout(() => {
+                updateSaveStatus();
+            }, 2000);
+        }
+
+        // Reset file input
+        input.value = '';
+    }
+
+    // Update word count
+    function updateWordCount(markDirty = true) {
+        const editor = document.getElementById('editor');
+        const text = editor.textContent.trim();
+        const words = text.split(/\s+/).filter(word => word.length > 0);
+        const wordCount = words.length;
+        const readingTime = Math.ceil(wordCount / 200);
+
+        document.getElementById('wordCount').textContent = wordCount;
+        document.getElementById('readingTime').textContent = readingTime;
+
+        if (markDirty && (document.getElementById('blogTitle').value || text)) {
+            isDirty = true;
+            updateSaveStatus();
+        }
+    }
+
+    // Update save status
+    function updateSaveStatus() {
+        const status = document.getElementById('saveStatus');
+        status.innerHTML = '<i class="fas fa-exclamation-circle"></i> Unsaved changes';
+        status.style.color = '#ffc107';
+    }
+
+    // Save draft
+    function saveDraft() {
+        document.getElementById('publishField').value = 'false';
+        submitForm();
+    }
+
+    // Submit form
+    function submitForm() {
+        const editor = document.getElementById('editor');
+        const contentField = document.getElementById('contentField');
+        contentField.value = editor.innerHTML;
+
+        document.getElementById('blogForm').submit();
+    }
+
+    // Form submission
+    document.getElementById('blogForm').addEventListener('submit', function(e) {
+        const editor = document.getElementById('editor');
+        const contentField = document.getElementById('contentField');
+        contentField.value = editor.innerHTML;
+
+        // Clear draft from localStorage when submitting
+        localStorage.removeItem('opinian_draft');
+        isDirty = false;
+    });
+
+    // Auto-save every 30 seconds
+    setInterval(() => {
+        if (isDirty) {
+            const title = document.getElementById('blogTitle').value;
+            const editor = document.getElementById('editor');
+            const content = editor.innerHTML;
+
+            if (title || content) {
+                localStorage.setItem('opinian_draft', JSON.stringify({
+                    title: title,
+                    content: content,
+                    timestamp: new Date().toISOString()
+                }));
+
+                const status = document.getElementById('saveStatus');
+                status.innerHTML = '<i class="fas fa-save"></i> Auto-saved';
+                status.style.color = 'var(--noir-green, #28a745)';
+
+                setTimeout(() => {
+                    if (isDirty) {
+                        updateSaveStatus();
+                    }
+                }, 2000);
+            }
+        }
+    }, 30000);
+
+    // Load draft on page load
+    window.addEventListener('DOMContentLoaded', function() {
+        // Check for AI-generated content first
+        const aiContent = localStorage.getItem('opinian_ai_content');
+        if (aiContent) {
+            try {
+                const aiData = JSON.parse(aiContent);
+                const contentAge = new Date() - new Date(aiData.timestamp);
+                const maxAge = 10 * 60 * 1000; // 10 minutes
+
+                if (contentAge < maxAge) {
+                    // Load AI content directly
+                    document.getElementById('editor').innerHTML = aiData.content || '';
+                    updateWordCount(false);
+                    isDirty = true;
+
+                    // Show notification
+                    const notification = document.createElement('div');
+                    notification.style.cssText = `
+                        position: fixed;
+                        top: 100px;
+                        right: 2rem;
+                        padding: 1rem 1.5rem;
+                        background: var(--noir-charcoal);
+                        border-left: 4px solid #4ade80;
+                        color: var(--noir-cream);
+                        font-weight: 500;
+                        z-index: 1002;
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+                    `;
+                    notification.textContent = 'AI-generated content loaded successfully!';
+                    document.body.appendChild(notification);
+
+                    setTimeout(() => {
+                        if (document.body.contains(notification)) {
+                            document.body.removeChild(notification);
+                        }
+                    }, 3000);
+                }
+
+                // Clear AI content from localStorage
+                localStorage.removeItem('opinian_ai_content');
+            } catch (e) {
+                console.error('Error loading AI content:', e);
+                localStorage.removeItem('opinian_ai_content');
+            }
+        } else {
+            // Check for regular draft
+            const draft = localStorage.getItem('opinian_draft');
+            if (draft && !{{ 'true' if post else 'false' }}) {
+                try {
+                    const data = JSON.parse(draft);
+                    // Check if draft is not too old (7 days)
+                    const draftAge = new Date() - new Date(data.timestamp);
+                    const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+
+                    if (draftAge > maxAge) {
+                        // Draft is too old, clear it
+                        localStorage.removeItem('opinian_draft');
+                    } else if (data.title || data.content) {
+                        // Only prompt if there's actual content
+                        if (confirm('Found an unsaved draft. Would you like to restore it?')) {
+                            document.getElementById('blogTitle').value = data.title || '';
+                            document.getElementById('editor').innerHTML = data.content || '';
+                            updateWordCount(false);
+                        } else {
+                            // User declined, clear the draft
+                            localStorage.removeItem('opinian_draft');
+                        }
+                    } else {
+                        // Empty draft, clear it
+                        localStorage.removeItem('opinian_draft');
+                    }
+                } catch (e) {
+                    console.error('Error loading draft:', e);
+                    localStorage.removeItem('opinian_draft');
+                }
+            }
+        }
+
+        // Initial word count (don't mark as dirty on page load)
+        updateWordCount(false);
+    });
+
+    // Warn before leaving with unsaved changes
+    window.addEventListener('beforeunload', function(e) {
+        if (isDirty) {
+            e.preventDefault();
+            e.returnValue = '';
+            return '';
+        }
+    });
+
+    // Keyboard shortcuts
+    document.getElementById('editor').addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey) {
+            switch (e.key) {
+                case 'b':
+                    e.preventDefault();
+                    formatDoc('bold');
+                    break;
+                case 'i':
+                    e.preventDefault();
+                    formatDoc('italic');
+                    break;
+                case 'u':
+                    e.preventDefault();
+                    formatDoc('underline');
+                    break;
+                case 's':
+                    e.preventDefault();
+                    saveDraft();
+                    break;
+            }
+        }
+    });
+</script>
+{% endblock %}
