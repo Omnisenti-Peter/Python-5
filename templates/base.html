@@ -3,115 +3,393 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Opinian - Where Stories Come Alive{% endblock %}</title>
-
+    <title>{% block title %}Opinian - SaaS Blogging Platform{% endblock %}</title>
+    
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-
-    <!-- Core Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/typed.js/2.0.12/typed.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-    <script src="https://unpkg.com/splitting@1.0.6/dist/splitting.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/splitting@1.0.6/dist/splitting.css">
-
-    <!-- Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/opinian_v2.css') }}">
-
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+Pro:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom CSS for 1920s/1940s theme -->
+    <style>
+        :root {
+            --primary-color: #1a1a1a;
+            --secondary-color: #d4af37;
+            --accent-color: #8b4513;
+            --background-color: #f5f5dc;
+            --text-color: #2c2c2c;
+            --heading-font: 'Playfair Display', serif;
+            --body-font: 'Source Sans Pro', sans-serif;
+            --border-radius: 8px;
+            --shadow-strength: 0.3;
+        }
+        
+        body {
+            font-family: var(--body-font);
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        
+        .noir-bg {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+        }
+        
+        .flapper-accent {
+            background: linear-gradient(45deg, var(--secondary-color), #f4e4bc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .vintage-card {
+            background: rgba(245, 245, 220, 0.95);
+            border: 2px solid var(--secondary-color);
+            border-radius: var(--border-radius);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, var(--shadow-strength));
+            backdrop-filter: blur(10px);
+        }
+        
+        .vintage-button {
+            background: linear-gradient(135deg, var(--secondary-color), #b8941f);
+            color: var(--primary-color);
+            border: none;
+            border-radius: var(--border-radius);
+            padding: 12px 24px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(212, 175, 55, 0.3);
+        }
+        
+        .vintage-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+        }
+        
+        .vintage-input {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid var(--secondary-color);
+            border-radius: var(--border-radius);
+            padding: 12px 16px;
+            color: var(--primary-color);
+            font-family: var(--body-font);
+        }
+        
+        .vintage-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
+        }
+        
+        .art-deco-border {
+            position: relative;
+            border: 3px solid var(--secondary-color);
+        }
+        
+        .art-deco-border::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: -6px;
+            right: -6px;
+            bottom: -6px;
+            border: 1px solid var(--accent-color);
+            border-radius: var(--border-radius);
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--heading-font);
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+        
+        .navbar {
+            background: rgba(26, 26, 26, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid var(--secondary-color);
+        }
+        
+        .navbar a {
+            color: var(--background-color);
+            transition: color 0.3s ease;
+        }
+        
+        .navbar a:hover {
+            color: var(--secondary-color);
+        }
+        
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .flash-message {
+            margin-bottom: 10px;
+            padding: 16px 20px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .success { background: #10b981; color: white; }
+        .error { background: #ef4444; color: white; }
+        .warning { background: #f59e0b; color: white; }
+        .info { background: #3b82f6; color: white; }
+        
+        .blog-post-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .blog-post-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .editor-toolbar {
+            background: var(--primary-color);
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+            padding: 12px;
+        }
+        
+        .editor-content {
+            border: 2px solid var(--secondary-color);
+            border-top: none;
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+            min-height: 400px;
+            padding: 20px;
+            background: white;
+        }
+        
+        @media (max-width: 768px) {
+            .vintage-card {
+                margin: 10px;
+                padding: 20px;
+            }
+            
+            h1 { font-size: 2rem; }
+            h2 { font-size: 1.5rem; }
+        }
+    </style>
+    
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="{{ url_for('main.index') }}" class="logo">
-                <i class="fas fa-feather-alt"></i> OPINIAN
-            </a>
-            <ul class="nav-links">
-                <li><a href="{{ url_for('main.index') }}" {% if request.endpoint == 'main.index' %}class="active"{% endif %}><i class="fas fa-home"></i> Home</a></li>
-                {% if current_user.is_authenticated %}
-                    <li><a href="{{ url_for('blog.my_posts') }}" {% if request.endpoint == 'blog.my_posts' %}class="active"{% endif %}><i class="fas fa-folder-open"></i> My Posts</a></li>
-                    <li><a href="{{ url_for('ai.ai_tools') }}" {% if request.endpoint == 'ai.ai_tools' %}class="active"{% endif %}><i class="fas fa-robot"></i> AI Assistant</a></li>
-                    <li><a href="{{ url_for('main.about') }}" {% if request.endpoint == 'main.about' %}class="active"{% endif %}><i class="fas fa-info-circle"></i> About</a></li>
-                    <li><a href="{{ url_for('blog.editor') }}" class="btn {% if request.endpoint == 'blog.editor' %}btn-primary{% else %}btn-outline{% endif %}" style="padding: 0.5rem 1rem;"><i class="fas fa-pen-fancy"></i> Write</a></li>
-                    {% if current_user.is_admin %}
-                        <li><a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-outline" style="padding: 0.5rem 1rem;"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+    <nav class="navbar fixed-top w-full z-50">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <a href="{{ url_for('index') }}" class="text-2xl font-bold flapper-accent">
+                        <i class="fas fa-feather-alt mr-2"></i>Opinian
+                    </a>
+                </div>
+                
+                <!-- Navigation Links -->
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="{{ url_for('index') }}" class="hover:text-yellow-300 transition-colors">
+                        <i class="fas fa-home mr-1"></i>Home
+                    </a>
+                    <a href="{{ url_for('blog.blog_index') }}" class="hover:text-yellow-300 transition-colors">
+                        <i class="fas fa-blog mr-1"></i>Blog
+                    </a>
+                    <a href="{{ url_for('pages.contact_us') }}" class="hover:text-yellow-300 transition-colors">
+                        <i class="fas fa-envelope mr-1"></i>Contact
+                    </a>
+                    <a href="{{ url_for('pages.about_us') }}" class="hover:text-yellow-300 transition-colors">
+                        <i class="fas fa-info-circle mr-1"></i>About
+                    </a>
+                    
+                    {% if session.user_id %}
+                        <!-- Authenticated User Menu -->
+                        <div class="relative group">
+                            <button class="flex items-center hover:text-yellow-300 transition-colors">
+                                <i class="fas fa-user mr-1"></i>{{ session.username }}
+                                <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                            </button>
+                            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                                <a href="{{ url_for('dashboard') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                                    <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                                </a>
+                                <a href="{{ url_for('blog.my_posts') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                                    <i class="fas fa-edit mr-2"></i>My Posts
+                                </a>
+                                <a href="{{ url_for('pages.user_profile', username=session.username) }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                                    <i class="fas fa-user-circle mr-2"></i>Profile
+                                </a>
+                                
+                                {% if session.user_role in ['SuperAdmin', 'Admin'] %}
+                                    <hr class="my-2">
+                                    <a href="{{ url_for('admin.dashboard') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                                        <i class="fas fa-cogs mr-2"></i>Admin
+                                    </a>
+                                {% endif %}
+                                
+                                <hr class="my-2">
+                                <a href="{{ url_for('logout') }}" class="block px-4 py-2 text-red-600 hover:bg-red-50">
+                                    <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                                </a>
+                            </div>
+                        </div>
+                    {% else %}
+                        <!-- Guest Menu -->
+                        <a href="{{ url_for('login') }}" class="vintage-button">
+                            <i class="fas fa-sign-in-alt mr-1"></i>Login
+                        </a>
+                        <a href="{{ url_for('register') }}" class="ml-4 text-yellow-300 hover:text-white transition-colors">
+                            <i class="fas fa-user-plus mr-1"></i>Register
+                        </a>
                     {% endif %}
-                    <li><a href="{{ url_for('auth.logout') }}" class="btn btn-secondary" style="padding: 0.5rem 1rem;"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                </div>
+                
+                <!-- Mobile Menu Button -->
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="text-white hover:text-yellow-300">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-gray-900 border-t border-yellow-400">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                <a href="{{ url_for('index') }}" class="block px-3 py-2 text-white hover:text-yellow-300">
+                    <i class="fas fa-home mr-2"></i>Home
+                </a>
+                <a href="{{ url_for('blog.blog_index') }}" class="block px-3 py-2 text-white hover:text-yellow-300">
+                    <i class="fas fa-blog mr-2"></i>Blog
+                </a>
+                <a href="{{ url_for('pages.contact_us') }}" class="block px-3 py-2 text-white hover:text-yellow-300">
+                    <i class="fas fa-envelope mr-2"></i>Contact
+                </a>
+                <a href="{{ url_for('pages.about_us') }}" class="block px-3 py-2 text-white hover:text-yellow-300">
+                    <i class="fas fa-info-circle mr-2"></i>About
+                </a>
+                
+                {% if session.user_id %}
+                    <hr class="border-gray-700">
+                    <a href="{{ url_for('dashboard') }}" class="block px-3 py-2 text-white hover:text-yellow-300">
+                        <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                    </a>
+                    <a href="{{ url_for('blog.my_posts') }}" class="block px-3 py-2 text-white hover:text-yellow-300">
+                        <i class="fas fa-edit mr-2"></i>My Posts
+                    </a>
+                    <a href="{{ url_for('logout') }}" class="block px-3 py-2 text-red-400 hover:text-red-300">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </a>
                 {% else %}
-                    <li><a href="#featured"><i class="fas fa-book-open"></i> Blogs</a></li>
-                    <li><a href="{{ url_for('ai.ai_tools') }}" {% if request.endpoint == 'ai.ai_tools' %}class="active"{% endif %}><i class="fas fa-robot"></i> AI Assistant</a></li>
-                    <li><a href="{{ url_for('main.about') }}" {% if request.endpoint == 'main.about' %}class="active"{% endif %}><i class="fas fa-info-circle"></i> About</a></li>
-                    <li><a href="{{ url_for('auth.login') }}" class="btn btn-secondary" style="padding: 0.5rem 1rem;"><i class="fas fa-sign-in-alt"></i> Login</a></li>
-                    <li><a href="{{ url_for('auth.register') }}" class="btn btn-primary" style="padding: 0.5rem 1rem;"><i class="fas fa-user-plus"></i> Get Started</a></li>
+                    <hr class="border-gray-700">
+                    <a href="{{ url_for('login') }}" class="block px-3 py-2 text-white hover:text-yellow-300">
+                        <i class="fas fa-sign-in-alt mr-2"></i>Login
+                    </a>
+                    <a href="{{ url_for('register') }}" class="block px-3 py-2 text-white hover:text-yellow-300">
+                        <i class="fas fa-user-plus mr-2"></i>Register
+                    </a>
                 {% endif %}
-            </ul>
+            </div>
         </div>
     </nav>
-
+    
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            <div style="position: fixed; top: 100px; right: 20px; z-index: 9999; max-width: 400px;">
+            <div class="flash-messages">
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}" style="margin-bottom: 10px;">
+                    <div class="flash-message {{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' or category == 'danger' %}times-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %} mr-2"></i>
                         {{ message }}
+                        <button class="ml-4 text-white hover:text-gray-200" onclick="this.parentElement.remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                 {% endfor %}
             </div>
         {% endif %}
     {% endwith %}
-
+    
     <!-- Main Content -->
-    {% block content %}{% endblock %}
-
-
+    <main class="pt-16 min-h-screen">
+        {% block content %}{% endblock %}
+    </main>
+    
     <!-- Footer -->
-    <footer class="footer" style="background: var(--noir-black); padding: 4rem 0 2rem; border-top: 1px solid var(--noir-gold);">
-        <div class="footer-container" style="max-width: var(--container-max); margin: 0 auto; padding: 0 2rem; text-align: center;">
-            <div class="footer-logo" style="font-family: var(--font-serif); font-size: 2rem; font-weight: 700; color: var(--noir-gold); margin-bottom: 1rem; letter-spacing: 0.1em;">
-                Opinian
+    <footer class="noir-bg text-white py-8 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <div class="mb-4">
+                <h3 class="text-2xl font-bold flapper-accent mb-2">
+                    <i class="fas fa-feather-alt mr-2"></i>Opinian
+                </h3>
+                <p class="text-gray-300">SaaS Blogging Platform</p>
             </div>
-            <p class="footer-text" style="color: var(--noir-light-gray); font-size: 1.1rem; font-style: italic; margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto;">
-                Where every story finds its voice and every voice tells a story.
-            </p>
-            <div class="footer-links" style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 2rem; flex-wrap: wrap;">
-                <a href="{{ url_for('main.about') }}" style="color: var(--noir-cream); text-decoration: none; transition: color 0.3s ease; font-size: 0.95rem;">About</a>
-                <a href="#" style="color: var(--noir-cream); text-decoration: none; transition: color 0.3s ease; font-size: 0.95rem;">Privacy</a>
-                <a href="#" style="color: var(--noir-cream); text-decoration: none; transition: color 0.3s ease; font-size: 0.95rem;">Terms</a>
-                <a href="#" style="color: var(--noir-cream); text-decoration: none; transition: color 0.3s ease; font-size: 0.95rem;">Contact</a>
+            
+            <div class="flex justify-center space-x-6 mb-4">
+                <a href="{{ url_for('blog.blog_index') }}" class="text-gray-300 hover:text-yellow-300 transition-colors">
+                    <i class="fas fa-blog mr-1"></i>Blog
+                </a>
+                <a href="{{ url_for('pages.contact_us') }}" class="text-gray-300 hover:text-yellow-300 transition-colors">
+                    <i class="fas fa-envelope mr-1"></i>Contact
+                </a>
+                <a href="{{ url_for('pages.about_us') }}" class="text-gray-300 hover:text-yellow-300 transition-colors">
+                    <i class="fas fa-info-circle mr-1"></i>About
+                </a>
             </div>
-            <div class="footer-copyright" style="color: var(--noir-gray); font-size: 0.85rem; padding-top: 2rem; border-top: 1px solid var(--noir-dark-gray);">
-                © 2024 Opinian. All rights reserved. Crafted with passion for storytelling.
+            
+            <div class="border-t border-gray-600 pt-4">
+                <p class="text-gray-400 text-sm">
+                    &copy; 2024 Opinian Platform. All rights reserved.
+                </p>
+                <p class="text-gray-500 text-xs mt-2">
+                    Built with 1920s elegance and 1940s sophistication
+                </p>
             </div>
         </div>
     </footer>
-
-    <style>
-        .footer-links a:hover {
-            color: var(--noir-gold);
-        }
-    </style>
-
-    <!-- Core JavaScript -->
+    
+    <!-- JavaScript -->
     <script>
-        // Auto-hide alerts
-        document.addEventListener('DOMContentLoaded', function() {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(alert => {
-                setTimeout(() => {
-                    alert.style.opacity = '0';
-                    alert.style.transition = 'opacity 0.5s ease';
-                    setTimeout(() => alert.remove(), 500);
-                }, 5000);
+        // Mobile menu toggle
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        });
+        
+        // Auto-hide flash messages after 5 seconds
+        setTimeout(function() {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(message) {
+                message.style.transition = 'opacity 0.5s ease';
+                message.style.opacity = '0';
+                setTimeout(function() {
+                    message.remove();
+                }, 500);
+            });
+        }, 5000);
+        
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
             });
         });
     </script>
-
+    
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -1,4 +1,0 @@
-"""
-Blueprints package initialization
-"""
-

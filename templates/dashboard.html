@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Opinian{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="container mx-auto px-4">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold mb-2 flapper-accent">
+                <i class="fas fa-tachometer-alt mr-3"></i>Dashboard
+            </h1>
+            <p class="text-xl text-gray-600">
+                Welcome back, <span class="font-semibold">{{ session.username }}</span>!
+                <span class="text-sm text-gray-500">({{ session.user_role }})</span>
+            </p>
+        </div>
+        
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {% if user_role == 'SuperAdmin' %}
+                <div class="vintage-card p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Total Users</p>
+                            <p class="text-3xl font-bold flapper-accent">{{ stats.total_users or 0 }}</p>
+                        </div>
+                        <div class="text-4xl text-yellow-600">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="vintage-card p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Total Groups</p>
+                            <p class="text-3xl font-bold flapper-accent">{{ stats.total_groups or 0 }}</p>
+                        </div>
+                        <div class="text-4xl text-yellow-600">
+                            <i class="fas fa-building"></i>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+            {% if user_role in ['SuperAdmin', 'Admin'] %}
+                <div class="vintage-card p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Blog Posts</p>
+                            <p class="text-3xl font-bold flapper-accent">{{ stats.total_blog_posts or 0 }}</p>
+                        </div>
+                        <div class="text-4xl text-yellow-600">
+                            <i class="fas fa-blog"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="vintage-card p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Pages</p>
+                            <p class="text-3xl font-bold flapper-accent">{{ stats.total_pages or 0 }}</p>
+                        </div>
+                        <div class="text-4xl text-yellow-600">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if stats.banned_users %}
+                    <div class="vintage-card p-6 border-red-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-red-600">Banned Users</p>
+                                <p class="text-3xl font-bold text-red-600">{{ stats.banned_users or 0 }}</p>
+                            </div>
+                            <div class="text-4xl text-red-600">
+                                <i class="fas fa-user-slash"></i>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                
+                {% if stats.pending_moderation %}
+                    <div class="vintage-card p-6 border-orange-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-orange-600">Pending Moderation</p>
+                                <p class="text-3xl font-bold text-orange-600">{{ stats.pending_moderation or 0 }}</p>
+                            </div>
+                            <div class="text-4xl text-orange-600">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="vintage-card p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">My Posts</p>
+                            <p class="text-3xl font-bold flapper-accent">{{ stats.my_blog_posts or 0 }}</p>
+                        </div>
+                        <div class="text-4xl text-yellow-600">
+                            <i class="fas fa-blog"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="vintage-card p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">My Pages</p>
+                            <p class="text-3xl font-bold flapper-accent">{{ stats.my_pages or 0 }}</p>
+                        </div>
+                        <div class="text-4xl text-yellow-600">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Main Content Area -->
+            <div class="lg:col-span-2">
+                <!-- Quick Actions -->
+                <div class="vintage-card p-6 mb-8">
+                    <h2 class="text-2xl font-bold mb-6 flapper-accent">
+                        <i class="fas fa-bolt mr-2"></i>Quick Actions
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <a href="{{ url_for('blog.create_post') }}" class="vintage-button text-center block">
+                            <i class="fas fa-pen-fancy mr-2"></i>Write New Post
+                        </a>
+                        
+                        {% if user_role in ['SuperAdmin', 'Admin', 'SuperUser'] %}
+                            <a href="{{ url_for('pages.create_page') }}" class="vintage-button text-center block">
+                                <i class="fas fa-file-alt mr-2"></i>Create Page
+                            </a>
+                        {% endif %}
+                        
+                        {% if user_role in ['SuperAdmin', 'Admin'] %}
+                            <a href="{{ url_for('themes.create_theme') }}" class="vintage-button text-center block">
+                                <i class="fas fa-palette mr-2"></i>Design Theme
+                            </a>
+                            
+                            {% if user_role == 'SuperAdmin' %}
+                                <a href="{{ url_for('admin.manage_users') }}" class="vintage-button text-center block">
+                                    <i class="fas fa-users-cog mr-2"></i>Manage Users
+                                </a>
+                            {% endif %}
+                        {% endif %}
+                        
+                        <a href="{{ url_for('blog.ai_assistant') }}" class="vintage-button text-center block">
+                            <i class="fas fa-robot mr-2"></i>AI Writing Assistant
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Recent Activity -->
+                {% if recent_activity %}
+                    <div class="vintage-card p-6">
+                        <h2 class="text-2xl font-bold mb-6 flapper-accent">
+                            <i class="fas fa-history mr-2"></i>Recent Activity
+                        </h2>
+                        
+                        <div class="space-y-4">
+                            {% for activity in recent_activity %}
+                                <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                                    <div class="flex-shrink-0 w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-{% if activity.action == 'login' %}sign-in-alt{% elif activity.action == 'create_blog_post' %}pen-fancy{% elif activity.action == 'edit_blog_post' %}edit{% elif activity.action == 'delete_blog_post' %}trash{% else %}info-circle{% endif %} text-black"></i>
+                                    </div>
+                                    
+                                    <div class="ml-4 flex-1">
+                                        <p class="text-sm font-medium text-gray-900">
+                                            {{ activity.action.replace('_', ' ').title() }}
+                                        </p>
+                                        <p class="text-sm text-gray-500">
+                                            {{ activity.created_at.strftime('%B %d, %Y at %I:%M %p') }}
+                                        </p>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                <!-- User Profile Card -->
+                <div class="vintage-card p-6">
+                    <h3 class="text-xl font-bold mb-4 flapper-accent">
+                        <i class="fas fa-user-circle mr-2"></i>Profile
+                    </h3>
+                    
+                    <div class="text-center mb-4">
+                        <div class="w-20 h-20 mx-auto bg-yellow-400 rounded-full flex items-center justify-center mb-3">
+                            <i class="fas fa-user text-3xl text-black"></i>
+                        </div>
+                        <h4 class="font-semibold">{{ session.username }}</h4>
+                        <p class="text-sm text-gray-600">{{ session.user_role }}</p>
+                    </div>
+                    
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Member since:</span>
+                            <span class="font-medium">{{ session.get('created_at', 'Today') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Last login:</span>
+                            <span class="font-medium">{{ session.get('last_login', 'Now') }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 pt-4 border-t border-gray-200">
+                        <a href="{{ url_for('pages.user_profile', username=session.username) }}" 
+                           class="block text-center vintage-button text-sm">
+                            <i class="fas fa-user mr-2"></i>View Profile
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Navigation Menu -->
+                <div class="vintage-card p-6">
+                    <h3 class="text-xl font-bold mb-4 flapper-accent">
+                        <i class="fas fa-compass mr-2"></i>Navigation
+                    </h3>
+                    
+                    <nav class="space-y-2">
+                        <a href="{{ url_for('blog.my_posts') }}" class="flex items-center p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                            <i class="fas fa-blog mr-3 text-yellow-600"></i>
+                            My Blog Posts
+                        </a>
+                        
+                        {% if user_role in ['SuperAdmin', 'Admin', 'SuperUser'] %}
+                            <a href="{{ url_for('pages.my_pages') }}" class="flex items-center p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                                <i class="fas fa-file-alt mr-3 text-yellow-600"></i>
+                                My Pages
+                            </a>
+                        {% endif %}
+                        
+                        {% if user_role in ['SuperAdmin', 'Admin'] %}
+                            <a href="{{ url_for('themes.index') }}" class="flex items-center p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                                <i class="fas fa-palette mr-3 text-yellow-600"></i>
+                                Theme Manager
+                            </a>
+                            
+                            <a href="{{ url_for('admin.dashboard') }}" class="flex items-center p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                                <i class="fas fa-cogs mr-3 text-yellow-600"></i>
+                                Admin Panel
+                            </a>
+                        {% endif %}
+                        
+                        <a href="{{ url_for('blog.ai_assistant') }}" class="flex items-center p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                            <i class="fas fa-robot mr-3 text-yellow-600"></i>
+                            AI Assistant
+                        </a>
+                    </nav>
+                </div>
+                
+                <!-- Quick Stats -->
+                <div class="vintage-card p-6">
+                    <h3 class="text-xl font-bold mb-4 flapper-accent">
+                        <i class="fas fa-chart-bar mr-2"></i>Quick Stats
+                    </h3>
+                    
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Total Views:</span>
+                            <span class="font-bold text-yellow-600">1,234</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">This Week:</span>
+                            <span class="font-bold text-yellow-600">89</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Engagement:</span>
+                            <span class="font-bold text-yellow-600">4.2%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Animate stats cards on load
+    document.addEventListener('DOMContentLoaded', function() {
+        const statsCards = document.querySelectorAll('.vintage-card');
+        
+        statsCards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+        
+        // Animate numbers
+        const numberElements = document.querySelectorAll('.flapper-accent');
+        numberElements.forEach(element => {
+            const finalValue = parseInt(element.textContent);
+            if (!isNaN(finalValue) && finalValue > 0) {
+                animateNumber(element, 0, finalValue, 1000);
+            }
+        });
+    });
+    
+    function animateNumber(element, start, end, duration) {
+        const range = end - start;
+        const increment = range / (duration / 16);
+        let current = start;
+        
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= end) {
+                current = end;
+                clearInterval(timer);
+            }
+            element.textContent = Math.floor(current);
+        }, 16);
+    }
+</script>
+{% endblock %}

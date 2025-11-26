@@ -1,0 +1,411 @@
+"""
+Blog routes for Opinian platform
+Handles blog post creation, editing, and viewing
+"""
+
+import os
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
+from werkzeug.utils import secure_filename
+from datetime import datetime
+import psycopg2
+from psycopg2.extras import RealDictCursor
+from app import get_db_connection, login_required, role_required, allowed_file, log_user_activity
+
+bp = Blueprint('blog', __name__, url_prefix='/blog')
+
+def get_upload_path():
+    """Get upload path for blog images"""
+    return os.path.join('uploads', 'blog_images')
+
+@bp.route('/')
+def blog_index():
+    """Blog index page - list all published blog posts"""
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Get all published blog posts from active groups
+            cursor.execute("""
+                SELECT bp.*, u.username, u.first_name, u.last_name, g.name as group_name
+                FROM blog_posts bp
+                JOIN users u ON bp.author_id = u.id
+                JOIN groups g ON bp.group_id = g.id
+                WHERE bp.is_published = TRUE AND g.is_active = TRUE
+                ORDER BY bp.published_at DESC
+            """)
+            blog_posts = cursor.fetchall()
+            
+            cursor.close()
+            conn.close()
+            
+            return render_template('blog/index.html', blog_posts=blog_posts)
+        else:
+            flash('Database connection error', 'danger')
+            return render_template('blog/index.html', blog_posts=[])
+            
+    except Exception as e:
+        flash('Error loading blog posts', 'danger')
+        return render_template('blog/index.html', blog_posts=[])
+
+@bp.route('/post/<slug>')
+def view_post(slug):
+    """View a single blog post"""
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Get blog post
+            cursor.execute("""
+                SELECT bp.*, u.username, u.first_name, u.last_name, g.name as group_name
+                FROM blog_posts bp
+                JOIN users u ON bp.author_id = u.id
+                JOIN groups g ON bp.group_id = g.id
+                WHERE bp.slug = %s AND bp.is_published = TRUE
+            """, (slug,))
+            
+            post = cursor.fetchone()
+            
+            if not post:
+                flash('Blog post not found', 'danger')
+                return redirect(url_for('blog.blog_index'))
+            
+            # Increment view count
+            cursor.execute("UPDATE blog_posts SET view_count = view_count + 1 WHERE id = %s", (post['id'],))
+            conn.commit()
+            
+            # Get related posts (same group or same tags)
+            cursor.execute("""
+                SELECT id, title, slug, published_at, excerpt
+                FROM blog_posts
+                WHERE group_id = %s AND id != %s AND is_published = TRUE
+                ORDER BY published_at DESC
+                LIMIT 5
+            """, (post['group_id'], post['id']))
+            related_posts = cursor.fetchall()
+            
+            cursor.close()
+            conn.close()
+            
+            return render_template('blog/view.html', post=post, related_posts=related_posts)
+        else:
+            flash('Database connection error', 'danger')
+            return redirect(url_for('blog.blog_index'))
+            
+    except Exception as e:
+        flash('Error loading blog post', 'danger')
+        return redirect(url_for('blog.blog_index'))
+
+@bp.route('/create', methods=['GET', 'POST'])
+@login_required
+def create_post():
+    """Create a new blog post"""
+    if request.method == 'POST':
+        title = request.form.get('title')
+        content = request.form.get('content')
+        excerpt = request.form.get('excerpt')
+        tags = request.form.get('tags', '')
+        meta_description = request.form.get('meta_description')
+        meta_keywords = request.form.get('meta_keywords')
+        is_published = request.form.get('is_published') == 'on'
+        
+        # Handle file upload
+        featured_image_url = None
+        if 'featured_image' in request.files:
+            file = request.files['featured_image']
+            if file and file.filename and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                upload_path = get_upload_path()
+                os.makedirs(upload_path, exist_ok=True)
+                
+                # Generate unique filename
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                unique_filename = f"{timestamp}_{filename}"
+                file_path = os.path.join(upload_path, unique_filename)
+                
+                file.save(file_path)
+                featured_image_url = file_path
+        
+        try:
+            conn = get_db_connection()
+            if conn:
+                cursor = conn.cursor()
+                
+                # Generate slug from title
+                import re
+                slug = re.sub(r'[^a-zA-Z0-9-]+', '-', title.lower()).strip('-')
+                
+                # Ensure unique slug
+                cursor.execute("SELECT id FROM blog_posts WHERE slug = %s", (slug,))
+                if cursor.fetchone():
+                    slug = f"{slug}-{int(datetime.now().timestamp())}"
+                
+                # Insert blog post
+                cursor.execute("""
+                    INSERT INTO blog_posts 
+                    (title, slug, content, excerpt, author_id, group_id, featured_image_url, 
+                     tags, meta_description, meta_keywords, is_published, published_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                """, (
+                    title, slug, content, excerpt, session['user_id'], session.get('group_id'),
+                    featured_image_url, tags.split(','), meta_description, meta_keywords,
+                    is_published, datetime.utcnow() if is_published else None
+                ))
+                
+                post_id = cursor.fetchone()[0]
+                conn.commit()
+                cursor.close()
+                conn.close()
+                
+                # Log activity
+                log_user_activity(session['user_id'], 'create_blog_post', 'blog_post', post_id)
+                
+                flash('Blog post created successfully!', 'success')
+                if is_published:
+                    return redirect(url_for('blog.view_post', slug=slug))
+                else:
+                    return redirect(url_for('blog.my_posts'))
+            else:
+                flash('Database connection error', 'danger')
+                
+        except Exception as e:
+            flash('Error creating blog post', 'danger')
+            logger.error(f"Error creating blog post: {e}")
+    
+    return render_template('blog/create.html')
+
+@bp.route('/edit/<int:post_id>', methods=['GET', 'POST'])
+@login_required
+def edit_post(post_id):
+    """Edit an existing blog post"""
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Get blog post
+            cursor.execute("""
+                SELECT * FROM blog_posts WHERE id = %s
+            """, (post_id,))
+            post = cursor.fetchone()
+            
+            if not post:
+                flash('Blog post not found', 'danger')
+                return redirect(url_for('blog.my_posts'))
+            
+            # Check permissions
+            if session['user_role'] not in ['SuperAdmin', 'Admin'] and post['author_id'] != session['user_id']:
+                flash('You do not have permission to edit this post', 'danger')
+                return redirect(url_for('blog.my_posts'))
+            
+            if request.method == 'POST':
+                title = request.form.get('title')
+                content = request.form.get('content')
+                excerpt = request.form.get('excerpt')
+                tags = request.form.get('tags', '')
+                meta_description = request.form.get('meta_description')
+                meta_keywords = request.form.get('meta_keywords')
+                is_published = request.form.get('is_published') == 'on'
+                
+                # Handle file upload
+                featured_image_url = post['featured_image_url']
+                if 'featured_image' in request.files:
+                    file = request.files['featured_image']
+                    if file and file.filename and allowed_file(file.filename):
+                        # Delete old image if exists
+                        if featured_image_url and os.path.exists(featured_image_url):
+                            os.remove(featured_image_url)
+                        
+                        filename = secure_filename(file.filename)
+                        upload_path = get_upload_path()
+                        os.makedirs(upload_path, exist_ok=True)
+                        
+                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                        unique_filename = f"{timestamp}_{filename}"
+                        file_path = os.path.join(upload_path, unique_filename)
+                        
+                        file.save(file_path)
+                        featured_image_url = file_path
+                
+                # Update slug if title changed
+                import re
+                slug = re.sub(r'[^a-zA-Z0-9-]+', '-', title.lower()).strip('-')
+                if slug != post['slug']:
+                    cursor.execute("SELECT id FROM blog_posts WHERE slug = %s AND id != %s", (slug, post_id))
+                    if cursor.fetchone():
+                        slug = f"{slug}-{int(datetime.now().timestamp())}"
+                
+                # Update blog post
+                cursor.execute("""
+                    UPDATE blog_posts 
+                    SET title = %s, slug = %s, content = %s, excerpt = %s,
+                        featured_image_url = %s, tags = %s, meta_description = %s,
+                        meta_keywords = %s, is_published = %s, published_at = %s,
+                        updated_at = %s
+                    WHERE id = %s
+                """, (
+                    title, slug, content, excerpt, featured_image_url, tags.split(','),
+                    meta_description, meta_keywords, is_published,
+                    datetime.utcnow() if is_published and not post['published_at'] else post['published_at'],
+                    datetime.utcnow(), post_id
+                ))
+                
+                conn.commit()
+                cursor.close()
+                conn.close()
+                
+                # Log activity
+                log_user_activity(session['user_id'], 'edit_blog_post', 'blog_post', post_id)
+                
+                flash('Blog post updated successfully!', 'success')
+                if is_published:
+                    return redirect(url_for('blog.view_post', slug=slug))
+                else:
+                    return redirect(url_for('blog.my_posts'))
+            
+            cursor.close()
+            conn.close()
+            
+            return render_template('blog/edit.html', post=post)
+        else:
+            flash('Database connection error', 'danger')
+            return redirect(url_for('blog.my_posts'))
+            
+    except Exception as e:
+        flash('Error loading blog post', 'danger')
+        logger.error(f"Error editing blog post: {e}")
+        return redirect(url_for('blog.my_posts'))
+
+@bp.route('/delete/<int:post_id>', methods=['POST'])
+@login_required
+def delete_post(post_id):
+    """Delete a blog post"""
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Get blog post
+            cursor.execute("SELECT * FROM blog_posts WHERE id = %s", (post_id,))
+            post = cursor.fetchone()
+            
+            if not post:
+                flash('Blog post not found', 'danger')
+                return redirect(url_for('blog.my_posts'))
+            
+            # Check permissions
+            if session['user_role'] not in ['SuperAdmin', 'Admin'] and post['author_id'] != session['user_id']:
+                flash('You do not have permission to delete this post', 'danger')
+                return redirect(url_for('blog.my_posts'))
+            
+            # Delete featured image if exists
+            if post['featured_image_url'] and os.path.exists(post['featured_image_url']):
+                os.remove(post['featured_image_url'])
+            
+            # Delete blog post
+            cursor.execute("DELETE FROM blog_posts WHERE id = %s", (post_id,))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            # Log activity
+            log_user_activity(session['user_id'], 'delete_blog_post', 'blog_post', post_id)
+            
+            flash('Blog post deleted successfully!', 'success')
+            return redirect(url_for('blog.my_posts'))
+        else:
+            flash('Database connection error', 'danger')
+            return redirect(url_for('blog.my_posts'))
+            
+    except Exception as e:
+        flash('Error deleting blog post', 'danger')
+        logger.error(f"Error deleting blog post: {e}")
+        return redirect(url_for('blog.my_posts'))
+
+@bp.route('/my-posts')
+@login_required
+def my_posts():
+    """List user's blog posts"""
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            
+            user_role = session['user_role']
+            user_id = session['user_id']
+            
+            if user_role in ['SuperAdmin', 'Admin']:
+                # Admins can see all posts in their group
+                cursor.execute("""
+                    SELECT bp.*, u.username
+                    FROM blog_posts bp
+                    JOIN users u ON bp.author_id = u.id
+                    WHERE bp.group_id = %s
+                    ORDER BY bp.created_at DESC
+                """, (session.get('group_id'),))
+            else:
+                # Regular users can only see their own posts
+                cursor.execute("""
+                    SELECT * FROM blog_posts 
+                    WHERE author_id = %s
+                    ORDER BY created_at DESC
+                """, (user_id,))
+            
+            blog_posts = cursor.fetchall()
+            cursor.close()
+            conn.close()
+            
+            return render_template('blog/my_posts.html', blog_posts=blog_posts)
+        else:
+            flash('Database connection error', 'danger')
+            return render_template('blog/my_posts.html', blog_posts=[])
+            
+    except Exception as e:
+        flash('Error loading blog posts', 'danger')
+        logger.error(f"Error loading my posts: {e}")
+        return render_template('blog/my_posts.html', blog_posts=[])
+
+@bp.route('/ai-assistant')
+@login_required
+def ai_assistant():
+    """AI writing assistant page"""
+    return render_template('blog/ai_assistant.html')
+
+@bp.route('/generate-content', methods=['POST'])
+@login_required
+def generate_content():
+    """Generate content using AI"""
+    try:
+        data = request.get_json()
+        prompt = data.get('prompt')
+        content_type = data.get('content_type', 'blog_post')
+        
+        # TODO: Integrate with actual LLM API
+        # For now, return a mock response
+        generated_content = f"""
+        <h2>Generated Blog Post Title</h2>
+        <p>This is a generated blog post based on your prompt: "{prompt}"</p>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+        <h3>Key Points:</h3>
+        <ul>
+            <li>First important point about {prompt}</li>
+            <li>Second important consideration</li>
+            <li>Third key insight</li>
+        </ul>
+        <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+        """
+        
+        return jsonify({
+            'success': True,
+            'content': generated_content,
+            'word_count': len(generated_content.split())
+        })
+        
+    except Exception as e:
+        logger.error(f"Error generating content: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to generate content'
+        }), 500

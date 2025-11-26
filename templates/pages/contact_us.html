@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Contact Us - Opinian{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-16">
+    <div class="container mx-auto px-4">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-bold mb-4 flapper-accent">
+                <i class="fas fa-envelope mr-3"></i>Contact Us
+            </h1>
+            <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+                We'd love to hear from you. Whether you have a question about our platform, 
+                need assistance, or just want to share your thoughts.
+            </p>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <!-- Contact Form -->
+            <div class="vintage-card p-8">
+                <h2 class="text-2xl font-bold mb-6 flapper-accent">
+                    <i class="fas fa-paper-plane mr-2"></i>Send us a message
+                </h2>
+                
+                <form method="POST" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="first_name" class="block text-sm font-semibold mb-2 text-gray-700">
+                                <i class="fas fa-user mr-2"></i>First Name
+                            </label>
+                            <input type="text" id="first_name" name="first_name" required
+                                   class="vintage-input w-full" placeholder="John">
+                        </div>
+                        
+                        <div>
+                            <label for="last_name" class="block text-sm font-semibold mb-2 text-gray-700">
+                                <i class="fas fa-user mr-2"></i>Last Name
+                            </label>
+                            <input type="text" id="last_name" name="last_name" required
+                                   class="vintage-input w-full" placeholder="Doe">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="email" class="block text-sm font-semibold mb-2 text-gray-700">
+                            <i class="fas fa-envelope mr-2"></i>Email Address
+                        </label>
+                        <input type="email" id="email" name="email" required
+                               class="vintage-input w-full" placeholder="john@example.com">
+                    </div>
+                    
+                    <div>
+                        <label for="subject" class="block text-sm font-semibold mb-2 text-gray-700">
+                            <i class="fas fa-tag mr-2"></i>Subject
+                        </label>
+                        <select id="subject" name="subject" required class="vintage-input w-full">
+                            <option value="">Select a topic</option>
+                            <option value="general">General Inquiry</option>
+                            <option value="support">Technical Support</option>
+                            <option value="feature">Feature Request</option>
+                            <option value="bug">Bug Report</option>
+                            <option value="partnership">Partnership</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="message" class="block text-sm font-semibold mb-2 text-gray-700">
+                            <i class="fas fa-comment mr-2"></i>Message
+                        </label>
+                        <textarea id="message" name="message" rows="6" required
+                                  class="vintage-input w-full" 
+                                  placeholder="Tell us how we can help you..."></textarea>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <input type="checkbox" id="privacy" name="privacy" required class="mt-1 mr-3">
+                        <label for="privacy" class="text-sm text-gray-600">
+                            I agree to the <a href="#" class="text-yellow-600 hover:text-yellow-700">Privacy Policy</a> 
+                            and consent to having my information stored for the purpose of responding to my inquiry.
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="vintage-button w-full text-lg">
+                        <i class="fas fa-paper-plane mr-2"></i>Send Message
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Contact Information -->
+            <div class="space-y-6">
+                <!-- Contact Details -->
+                <div class="vintage-card p-6">
+                    <h3 class="text-xl font-bold mb-4 flapper-accent">
+                        <i class="fas fa-address-book mr-2"></i>Get in Touch
+                    </h3>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-envelope text-black"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold">Email</h4>
+                                <p class="text-gray-600">hello@opinian.com</p>
+                                <p class="text-sm text-gray-500">We respond within 24 hours</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-3">
+                            <div class="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-phone text-black"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold">Phone</h4>
+                                <p class="text-gray-600">+1 (555) 123-4567</p>
+                                <p class="text-sm text-gray-500">Mon-Fri, 9AM-6PM EST</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-3">
+                            <div class="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-map-marker-alt text-black"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold">Address</h4>
+                                <p class="text-gray-600">
+                                    123 Digital Avenue<br>
+                                    Tech City, TC 12345<br>
+                                    United States
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Business Hours -->
+                <div class="vintage-card p-6">
+                    <h3 class="text-xl font-bold mb-4 flapper-accent">
+                        <i class="fas fa-clock mr-2"></i>Business Hours
+                    </h3>
+                    
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Monday - Friday</span>
+                            <span class="font-semibold">9:00 AM - 6:00 PM</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Saturday</span>
+                            <span class="font-semibold">10:00 AM - 4:00 PM</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Sunday</span>
+                            <span class="text-red-600">Closed</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-yellow-50 rounded-lg">
+                        <p class="text-sm text-yellow-800">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Email support available 24/7 for urgent matters.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Social Media -->
+                <div class="vintage-card p-6">
+                    <h3 class="text-xl font-bold mb-4 flapper-accent">
+                        <i class="fas fa-share-alt mr-2"></i>Follow Us
+                    </h3>
+                    
+                    <div class="flex space-x-3">
+                        <a href="#" class="w-12 h-12 bg-blue-600 hover:bg-blue-700 rounded-full flex items-center justify-center text-white transition-colors">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="w-12 h-12 bg-blue-800 hover:bg-blue-900 rounded-full flex items-center justify-center text-white transition-colors">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                        <a href="#" class="w-12 h-12 bg-gray-800 hover:bg-gray-900 rounded-full flex items-center justify-center text-white transition-colors">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="#" class="w-12 h-12 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center text-white transition-colors">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- FAQ -->
+                <div class="vintage-card p-6">
+                    <h3 class="text-xl font-bold mb-4 flapper-accent">
+                        <i class="fas fa-question-circle mr-2"></i>Quick Answers
+                    </h3>
+                    
+                    <div class="space-y-3 text-sm">
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-1">How do I create a blog?</h4>
+                            <p class="text-gray-600">Sign up for an account and use our intuitive editor to start writing immediately.</p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-1">Can I customize my blog's appearance?</h4>
+                            <p class="text-gray-600">Yes! Use our AI-powered theme generator or visual editor to create unique designs.</p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-1">Is there a free plan?</h4>
+                            <p class="text-gray-600">Yes, we offer a generous free plan with essential features for individual bloggers.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Form submission
+    document.querySelector('form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+        submitBtn.disabled = true;
+        
+        // Simulate form submission
+        setTimeout(() => {
+            alert('Thank you for your message! We\'ll get back to you within 24 hours.');
+            this.reset();
+            
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }, 2000);
+    });
+    
+    // Social media links
+    document.querySelectorAll('.fa-twitter, .fa-linkedin-in, .fa-github, .fa-facebook-f').forEach(icon => {
+        icon.parentElement.addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('Social media links coming soon!');
+        });
+    });
+</script>
+{% endblock %}

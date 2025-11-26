@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}Blog - Opinian{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="container mx-auto px-4">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-bold mb-4 flapper-accent">
+                <i class="fas fa-blog mr-3"></i>Blog
+            </h1>
+            <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+                Discover insights, stories, and knowledge from our community of writers
+            </p>
+        </div>
+        
+        <!-- Search and Filter -->
+        <div class="mb-8">
+            <div class="vintage-card p-6">
+                <div class="flex flex-col md:flex-row gap-4 items-center">
+                    <div class="flex-1">
+                        <div class="relative">
+                            <input type="text" id="search-input" placeholder="Search blog posts..."
+                                   class="vintage-input w-full pl-10">
+                            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <select id="category-filter" class="vintage-input">
+                            <option value="">All Categories</option>
+                            <option value="technology">Technology</option>
+                            <option value="business">Business</option>
+                            <option value="lifestyle">Lifestyle</option>
+                            <option value="education">Education</option>
+                        </select>
+                        
+                        <select id="sort-filter" class="vintage-input">
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="popular">Most Popular</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Blog Posts Grid -->
+        {% if blog_posts %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="blog-posts-grid">
+                {% for post in blog_posts %}
+                    <article class="vintage-card blog-post-card p-6" data-post-id="{{ post.id }}">
+                        {% if post.featured_image_url %}
+                            <div class="mb-4 rounded-lg overflow-hidden">
+                                <img src="{{ post.featured_image_url }}" alt="{{ post.title }}" 
+                                     class="w-full h-48 object-cover">
+                            </div>
+                        {% endif %}
+                        
+                        <div class="mb-3 flex items-center justify-between">
+                            <span class="text-sm text-gray-500">
+                                <i class="fas fa-calendar mr-1"></i>{{ post.published_at.strftime('%B %d, %Y') }}
+                            </span>
+                            <div class="flex items-center text-sm text-gray-500">
+                                <i class="fas fa-eye mr-1"></i>{{ post.view_count or 0 }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <span class="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">
+                                {{ post.group_name }}
+                            </span>
+                        </div>
+                        
+                        <h2 class="text-xl font-bold mb-3 hover:text-yellow-600 transition-colors">
+                            <a href="{{ url_for('blog.view_post', slug=post.slug) }}">{{ post.title }}</a>
+                        </h2>
+                        
+                        <p class="text-gray-600 mb-4 line-clamp-3">{{ post.excerpt or post.content[:200] }}</p>
+                        
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center mr-2">
+                                    <i class="fas fa-user text-black text-sm"></i>
+                                </div>
+                                <span class="text-sm text-gray-600">
+                                    {{ post.first_name }} {{ post.last_name }}
+                                </span>
+                            </div>
+                            
+                            <a href="{{ url_for('blog.view_post', slug=post.slug) }}" 
+                               class="vintage-button text-sm px-4 py-2">
+                                Read More <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                        
+                        {% if post.tags %}
+                            <div class="flex flex-wrap gap-1">
+                                {% for tag in post.tags %}
+                                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                        {{ tag }}
+                                    </span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </article>
+                {% endfor %}
+            </div>
+            
+            <!-- Load More Button -->
+            <div class="text-center mt-12">
+                <button id="load-more" class="vintage-button text-lg px-8 py-4">
+                    <i class="fas fa-plus mr-2"></i>Load More Posts
+                </button>
+            </div>
+        {% else %}
+            <!-- No Posts -->
+            <div class="text-center py-16">
+                <div class="text-6xl mb-4 text-gray-300">
+                    <i class="fas fa-blog"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-600 mb-4">No blog posts found</h2>
+                <p class="text-gray-500 mb-8">Be the first to share your thoughts with the community!</p>
+                
+                {% if session.user_id %}
+                    <a href="{{ url_for('blog.create_post') }}" class="vintage-button text-lg px-8 py-4">
+                        <i class="fas fa-pen-fancy mr-2"></i>Write Your First Post
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('register') }}" class="vintage-button text-lg px-8 py-4">
+                        <i class="fas fa-user-plus mr-2"></i>Join and Start Writing
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Search functionality
+    const searchInput = document.getElementById('search-input');
+    const categoryFilter = document.getElementById('category-filter');
+    const sortFilter = document.getElementById('sort-filter');
+    const blogPostsGrid = document.getElementById('blog-posts-grid');
+    const loadMoreBtn = document.getElementById('load-more');
+    
+    let currentPage = 1;
+    let isLoading = false;
+    
+    // Search input handler
+    searchInput.addEventListener('input', debounce(function() {
+        currentPage = 1;
+        searchPosts();
+    }, 300));
+    
+    // Filter handlers
+    categoryFilter.addEventListener('change', function() {
+        currentPage = 1;
+        searchPosts();
+    });
+    
+    sortFilter.addEventListener('change', function() {
+        currentPage = 1;
+        searchPosts();
+    });
+    
+    // Load more handler
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', function() {
+            if (!isLoading) {
+                currentPage++;
+                loadMorePosts();
+            }
+        });
+    }
+    
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    function searchPosts() {
+        const query = searchInput.value;
+        const category = categoryFilter.value;
+        const sort = sortFilter.value;
+        
+        // Show loading state
+        blogPostsGrid.innerHTML = '<div class="col-span-full text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-yellow-600"></i></div>';
+        
+        // Simulate API call (replace with actual API endpoint)
+        setTimeout(() => {
+            // For now, just filter existing posts
+            filterPosts(query, category, sort);
+        }, 500);
+    }
+    
+    function filterPosts(query, category, sort) {
+        const posts = document.querySelectorAll('[data-post-id]');
+        let visibleCount = 0;
+        
+        posts.forEach(post => {
+            const title = post.querySelector('h2 a').textContent.toLowerCase();
+            const content = post.querySelector('.line-clamp-3').textContent.toLowerCase();
+            const isVisible = !query || title.includes(query.toLowerCase()) || content.includes(query.toLowerCase());
+            
+            if (isVisible) {
+                post.style.display = 'block';
+                visibleCount++;
+            } else {
+                post.style.display = 'none';
+            }
+        });
+        
+        // Show/hide no results message
+        if (visibleCount === 0) {
+            blogPostsGrid.innerHTML = `
+                <div class="col-span-full text-center py-16">
+                    <div class="text-6xl mb-4 text-gray-300">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-600 mb-4">No posts found</h2>
+                    <p class="text-gray-500">Try adjusting your search terms or filters.</p>
+                </div>
+            `;
+        }
+        
+        // Hide load more button if no results
+        if (loadMoreBtn) {
+            loadMoreBtn.style.display = visibleCount > 0 ? 'block' : 'none';
+        }
+    }
+    
+    function loadMorePosts() {
+        isLoading = true;
+        loadMoreBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Loading...';
+        
+        // Simulate loading more posts
+        setTimeout(() => {
+            // For demo purposes, just show a message
+            loadMoreBtn.innerHTML = '<i class="fas fa-check mr-2"></i>All posts loaded';
+            loadMoreBtn.disabled = true;
+            loadMoreBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            isLoading = false;
+        }, 1000);
+    }
+    
+    // Add line clamp utility
+    document.querySelectorAll('.line-clamp-3').forEach(el => {
+        el.style.display = '-webkit-box';
+        el.style.webkitLineClamp = '3';
+        el.style.webkitBoxOrient = 'vertical';
+        el.style.overflow = 'hidden';
+    });
+    
+    // Animate cards on load
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.blog-post-card');
+        
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    });
+</script>
+{% endblock %}
