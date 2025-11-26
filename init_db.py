@@ -21,7 +21,8 @@ def create_database():
             host=os.getenv('DB_HOST', 'localhost'),
             user=os.getenv('DB_USER', 'postgres'),
             password=os.getenv('DB_PASSWORD', ''),
-            port=os.getenv('DB_PORT', '5432')
+            port=os.getenv('DB_PORT', '5432'),
+            database='postgres'  # Connect to default postgres database first
         )
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         
