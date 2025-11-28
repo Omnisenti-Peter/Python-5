@@ -4,12 +4,16 @@ Handles blog post creation, editing, and viewing
 """
 
 import os
+import logging
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from app import get_db_connection, login_required, role_required, allowed_file, log_user_activity
+from ai_service import ai_service
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint('blog', __name__, url_prefix='/blog')
 
@@ -381,31 +385,153 @@ def generate_content():
         data = request.get_json()
         prompt = data.get('prompt')
         content_type = data.get('content_type', 'blog_post')
-        
-        # TODO: Integrate with actual LLM API
-        # For now, return a mock response
-        generated_content = f"""
-        <h2>Generated Blog Post Title</h2>
-        <p>This is a generated blog post based on your prompt: "{prompt}"</p>
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-        <h3>Key Points:</h3>
-        <ul>
-            <li>First important point about {prompt}</li>
-            <li>Second important consideration</li>
-            <li>Third key insight</li>
-        </ul>
-        <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-        """
-        
-        return jsonify({
-            'success': True,
-            'content': generated_content,
-            'word_count': len(generated_content.split())
-        })
-        
+
+        if not prompt:
+            return jsonify({
+                'success': False,
+                'error': 'Prompt is required'
+            }), 400
+
+        # Use AI service to generate content
+        result = ai_service.generate_blog_content(prompt, content_type)
+
+        # Log activity
+        log_user_activity(
+            session['user_id'],
+            'generate_ai_content',
+            'blog_content',
+            None,
+            {'prompt': prompt[:100], 'content_type': content_type}
+        )
+
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify(result), 500
+
     except Exception as e:
         logger.error(f"Error generating content: {e}")
         return jsonify({
             'success': False,
-            'error': 'Failed to generate content'
+            'error': 'Failed to generate content',
+            'message': str(e)
+        }), 500
+
+@bp.route('/generate-titles', methods=['POST'])
+@login_required
+def generate_titles():
+    """Generate title suggestions using AI"""
+    try:
+        data = request.get_json()
+        topic = data.get('topic')
+        count = data.get('count', 5)
+
+        if not topic:
+            return jsonify({
+                'success': False,
+                'error': 'Topic is required'
+            }), 400
+
+        # Use AI service to generate titles
+        result = ai_service.generate_title_suggestions(topic, count)
+
+        # Log activity
+        log_user_activity(
+            session['user_id'],
+            'generate_ai_titles',
+            'blog_titles',
+            None,
+            {'topic': topic[:100]}
+        )
+
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify(result), 500
+
+    except Exception as e:
+        logger.error(f"Error generating titles: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to generate titles',
+            'message': str(e)
+        }), 500
+
+@bp.route('/improve-content', methods=['POST'])
+@login_required
+def improve_content():
+    """Improve existing content using AI"""
+    try:
+        data = request.get_json()
+        content = data.get('content')
+        instructions = data.get('instructions', 'Improve the writing quality and engagement')
+
+        if not content:
+            return jsonify({
+                'success': False,
+                'error': 'Content is required'
+            }), 400
+
+        # Use AI service to improve content
+        result = ai_service.improve_content(content, instructions)
+
+        # Log activity
+        log_user_activity(
+            session['user_id'],
+            'improve_ai_content',
+            'blog_content',
+            None,
+            {'instructions': instructions[:100]}
+        )
+
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify(result), 500
+
+    except Exception as e:
+        logger.error(f"Error improving content: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to improve content',
+            'message': str(e)
+        }), 500
+
+@bp.route('/generate-excerpt', methods=['POST'])
+@login_required
+def generate_excerpt():
+    """Generate excerpt from full content using AI"""
+    try:
+        data = request.get_json()
+        content = data.get('content')
+        max_length = data.get('max_length', 200)
+
+        if not content:
+            return jsonify({
+                'success': False,
+                'error': 'Content is required'
+            }), 400
+
+        # Use AI service to generate excerpt
+        result = ai_service.generate_excerpt(content, max_length)
+
+        # Log activity
+        log_user_activity(
+            session['user_id'],
+            'generate_ai_excerpt',
+            'blog_excerpt',
+            None
+        )
+
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify(result), 500
+
+    except Exception as e:
+        logger.error(f"Error generating excerpt: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to generate excerpt',
+            'message': str(e)
         }), 500

@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}AI Writing Assistant - Opinian{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="container mx-auto px-4 max-w-6xl">
+        <!-- Header -->
+        <div class="mb-8 text-center">
+            <h1 class="text-4xl font-bold mb-2 flapper-accent">
+                <i class="fas fa-robot mr-3"></i>AI Writing Assistant
+            </h1>
+            <p class="text-xl text-gray-600">Let AI help you create amazing blog content</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Input Panel -->
+            <div class="space-y-6">
+                <!-- Content Type Selection -->
+                <div class="vintage-card p-6">
+                    <h3 class="text-lg font-bold mb-4 flapper-accent">
+                        <i class="fas fa-list mr-2"></i>Content Type
+                    </h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center p-3 border-2 border-gray-200 rounded-lg hover:border-yellow-400 cursor-pointer transition-colors">
+                            <input type="radio" name="content_type" value="blog_post" checked class="mr-3 text-yellow-600">
+                            <div>
+                                <div class="font-semibold">Blog Post</div>
+                                <div class="text-sm text-gray-500">Engaging, conversational content</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-3 border-2 border-gray-200 rounded-lg hover:border-yellow-400 cursor-pointer transition-colors">
+                            <input type="radio" name="content_type" value="article" class="mr-3 text-yellow-600">
+                            <div>
+                                <div class="font-semibold">Article</div>
+                                <div class="text-sm text-gray-500">In-depth, informative content</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-3 border-2 border-gray-200 rounded-lg hover:border-yellow-400 cursor-pointer transition-colors">
+                            <input type="radio" name="content_type" value="story" class="mr-3 text-yellow-600">
+                            <div>
+                                <div class="font-semibold">Story</div>
+                                <div class="text-sm text-gray-500">Creative, narrative content</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Prompt Input -->
+                <div class="vintage-card p-6">
+                    <h3 class="text-lg font-bold mb-4 flapper-accent">
+                        <i class="fas fa-pen-fancy mr-2"></i>What would you like to write about?
+                    </h3>
+                    <textarea id="ai-prompt" rows="6"
+                              class="vintage-input w-full"
+                              placeholder="Example: Write about the benefits of cloud computing for small businesses, including cost savings and scalability..."></textarea>
+                    <p class="text-sm text-gray-500 mt-2">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Be specific for better results. Include details about your target audience, tone, and key points.
+                    </p>
+                </div>
+
+                <!-- Generate Button -->
+                <div class="vintage-card p-6">
+                    <h3 class="text-lg font-bold mb-4 flapper-accent">
+                        <i class="fas fa-magic mr-2"></i>Actions
+                    </h3>
+                    <div class="space-y-3">
+                        <button id="generate-content" class="vintage-button w-full text-lg">
+                            <i class="fas fa-wand-magic-sparkles mr-2"></i>Generate Content
+                        </button>
+                        <button id="generate-titles" class="w-full border-2 border-yellow-400 text-yellow-600 hover:bg-yellow-400 hover:text-black px-6 py-3 rounded-lg font-semibold transition-all duration-300">
+                            <i class="fas fa-lightbulb mr-2"></i>Generate Title Ideas
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tips -->
+                <div class="vintage-card p-6 bg-blue-50">
+                    <h3 class="text-lg font-bold mb-3 text-blue-800">
+                        <i class="fas fa-lightbulb mr-2"></i>Tips for Better Results
+                    </h3>
+                    <ul class="space-y-2 text-sm text-blue-900">
+                        <li><i class="fas fa-check text-blue-600 mr-2"></i>Be specific about your topic and audience</li>
+                        <li><i class="fas fa-check text-blue-600 mr-2"></i>Mention the tone you want (professional, casual, etc.)</li>
+                        <li><i class="fas fa-check text-blue-600 mr-2"></i>Include key points you want covered</li>
+                        <li><i class="fas fa-check text-blue-600 mr-2"></i>Specify the desired length if needed</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Output Panel -->
+            <div class="space-y-6">
+                <!-- Generated Content -->
+                <div class="vintage-card p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold flapper-accent">
+                            <i class="fas fa-file-alt mr-2"></i>Generated Content
+                        </h3>
+                        <div id="content-stats" class="text-sm text-gray-500 hidden">
+                            <span id="word-count"></span> words •
+                            <span id="read-time"></span> min read
+                        </div>
+                    </div>
+
+                    <div id="output-placeholder" class="text-center py-12 text-gray-400">
+                        <i class="fas fa-file-alt text-6xl mb-4"></i>
+                        <p>Generated content will appear here</p>
+                    </div>
+
+                    <div id="generated-output" class="hidden">
+                        <div class="bg-white border-2 border-gray-200 rounded-lg p-6 max-h-96 overflow-y-auto">
+                            <div id="generated-content"></div>
+                        </div>
+
+                        <div class="mt-4 flex gap-3">
+                            <button id="copy-content" class="flex-1 border-2 border-green-400 text-green-600 hover:bg-green-400 hover:text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300">
+                                <i class="fas fa-copy mr-2"></i>Copy to Clipboard
+                            </button>
+                            <button id="export-word" class="flex-1 border-2 border-blue-400 text-blue-600 hover:bg-blue-400 hover:text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300">
+                                <i class="fas fa-file-word mr-2"></i>Export to Word
+                            </button>
+                        </div>
+
+                        <div class="mt-3">
+                            <a href="{{ url_for('blog.create_post') }}" id="create-post-btn"
+                               class="block text-center vintage-button w-full">
+                                <i class="fas fa-plus mr-2"></i>Create Blog Post with This Content
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Title Ideas (shown when generating titles) -->
+                <div id="title-ideas" class="vintage-card p-6 hidden">
+                    <h3 class="text-lg font-bold mb-4 flapper-accent">
+                        <i class="fas fa-lightbulb mr-2"></i>Title Suggestions
+                    </h3>
+                    <div id="title-list" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const generateBtn = document.getElementById('generate-content');
+    const generateTitlesBtn = document.getElementById('generate-titles');
+    const promptInput = document.getElementById('ai-prompt');
+    const outputPlaceholder = document.getElementById('output-placeholder');
+    const generatedOutput = document.getElementById('generated-output');
+    const generatedContent = document.getElementById('generated-content');
+    const contentStats = document.getElementById('content-stats');
+    const wordCount = document.getElementById('word-count');
+    const readTime = document.getElementById('read-time');
+    const copyBtn = document.getElementById('copy-content');
+    const exportBtn = document.getElementById('export-word');
+    const titleIdeas = document.getElementById('title-ideas');
+    const titleList = document.getElementById('title-list');
+
+    // Generate content
+    generateBtn.addEventListener('click', async function() {
+        const prompt = promptInput.value.trim();
+        const contentType = document.querySelector('input[name="content_type"]:checked').value;
+
+        if (!prompt) {
+            alert('Please enter a prompt describing what you want to write about.');
+            return;
+        }
+
+        this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Generating...';
+        this.disabled = true;
+        titleIdeas.classList.add('hidden');
+
+        try {
+            const response = await fetch('/blog/generate-content', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    prompt: prompt,
+                    content_type: contentType
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                generatedContent.innerHTML = result.content;
+                wordCount.textContent = result.word_count;
+                readTime.textContent = result.estimated_reading_time;
+
+                outputPlaceholder.classList.add('hidden');
+                generatedOutput.classList.remove('hidden');
+                contentStats.classList.remove('hidden');
+
+                // Store content for later use
+                sessionStorage.setItem('ai_generated_content', result.content);
+            } else {
+                alert('Error: ' + (result.message || result.error || 'Failed to generate content'));
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to generate content. Please try again.');
+        } finally {
+            this.innerHTML = '<i class="fas fa-wand-magic-sparkles mr-2"></i>Generate Content';
+            this.disabled = false;
+        }
+    });
+
+    // Generate titles
+    generateTitlesBtn.addEventListener('click', async function() {
+        const prompt = promptInput.value.trim();
+
+        if (!prompt) {
+            alert('Please enter a topic to generate title ideas.');
+            return;
+        }
+
+        this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Generating Titles...';
+        this.disabled = true;
+
+        try {
+            const response = await fetch('/blog/generate-titles', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    topic: prompt,
+                    count: 5
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.titles) {
+                titleList.innerHTML = '';
+                result.titles.forEach(title => {
+                    const titleBtn = document.createElement('button');
+                    titleBtn.className = 'w-full text-left p-3 border-2 border-gray-200 rounded-lg hover:border-yellow-400 hover:bg-yellow-50 transition-colors';
+                    titleBtn.innerHTML = `<i class="fas fa-quote-left text-yellow-600 mr-2"></i>${title}`;
+                    titleBtn.onclick = function() {
+                        promptInput.value = title;
+                    };
+                    titleList.appendChild(titleBtn);
+                });
+
+                titleIdeas.classList.remove('hidden');
+            } else {
+                alert('Error: ' + (result.message || result.error || 'Failed to generate titles'));
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to generate titles. Please try again.');
+        } finally {
+            this.innerHTML = '<i class="fas fa-lightbulb mr-2"></i>Generate Title Ideas';
+            this.disabled = false;
+        }
+    });
+
+    // Copy to clipboard
+    copyBtn.addEventListener('click', function() {
+        const content = generatedContent.innerText;
+        navigator.clipboard.writeText(content).then(() => {
+            this.innerHTML = '<i class="fas fa-check mr-2"></i>Copied!';
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-copy mr-2"></i>Copy to Clipboard';
+            }, 2000);
+        }).catch(err => {
+            alert('Failed to copy to clipboard');
+        });
+    });
+
+    // Export to Word (placeholder - actual implementation would require server-side processing)
+    exportBtn.addEventListener('click', function() {
+        alert('Export to Word feature coming soon! For now, you can copy the content and paste it into Word.');
+    });
+</script>
+{% endblock %}

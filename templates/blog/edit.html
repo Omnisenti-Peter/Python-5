@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Post - {{ post.title }} - Opinian{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="container mx-auto px-4">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold mb-2 flapper-accent">
+                <i class="fas fa-edit mr-3"></i>Edit Blog Post
+            </h1>
+            <p class="text-xl text-gray-600">Update your post content and settings</p>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Main Content -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Title -->
+                <div class="vintage-card p-6">
+                    <label for="title" class="block text-lg font-semibold mb-3 text-gray-700">
+                        <i class="fas fa-heading mr-2"></i>Post Title
+                    </label>
+                    <input type="text" id="title" name="title" required
+                           value="{{ post.title }}"
+                           class="vintage-input w-full text-lg"
+                           placeholder="Enter a compelling title for your blog post...">
+                </div>
+
+                <!-- Content Editor -->
+                <div class="vintage-card">
+                    <div class="editor-toolbar">
+                        <div class="flex items-center space-x-2 text-white">
+                            <button type="button" class="p-2 hover:bg-gray-600 rounded" title="Bold">
+                                <i class="fas fa-bold"></i>
+                            </button>
+                            <button type="button" class="p-2 hover:bg-gray-600 rounded" title="Italic">
+                                <i class="fas fa-italic"></i>
+                            </button>
+                            <button type="button" class="p-2 hover:bg-gray-600 rounded" title="Underline">
+                                <i class="fas fa-underline"></i>
+                            </button>
+                            <div class="w-px h-6 bg-gray-600"></div>
+                            <button type="button" class="p-2 hover:bg-gray-600 rounded" title="Insert Link">
+                                <i class="fas fa-link"></i>
+                            </button>
+                            <button type="button" class="p-2 hover:bg-gray-600 rounded" title="Insert Image">
+                                <i class="fas fa-image"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <textarea id="content" name="content" required
+                              class="editor-content w-full" rows="20"
+                              placeholder="Start writing your blog post content here...">{{ post.content }}</textarea>
+                </div>
+
+                <!-- Excerpt -->
+                <div class="vintage-card p-6">
+                    <label for="excerpt" class="block text-lg font-semibold mb-3 text-gray-700">
+                        <i class="fas fa-quote-left mr-2"></i>Excerpt
+                    </label>
+                    <textarea id="excerpt" name="excerpt" rows="3"
+                              class="vintage-input w-full"
+                              placeholder="Write a brief summary of your blog post (optional)...">{{ post.excerpt or '' }}</textarea>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                <!-- Publish Settings -->
+                <div class="vintage-card p-6">
+                    <h3 class="text-lg font-bold mb-4 flapper-accent">
+                        <i class="fas fa-cog mr-2"></i>Publish Settings
+                    </h3>
+
+                    <div class="space-y-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="is_published" name="is_published"
+                                   {{ 'checked' if post.is_published else '' }}
+                                   class="mr-3 text-yellow-600">
+                            <span class="text-gray-700">
+                                <i class="fas fa-globe mr-1"></i>Published
+                            </span>
+                        </label>
+
+                        {% if post.published_at %}
+                        <div class="text-sm text-gray-600">
+                            <i class="fas fa-calendar-check mr-1"></i>
+                            Published: {{ post.published_at.strftime('%B %d, %Y at %I:%M %p') }}
+                        </div>
+                        {% endif %}
+
+                        <div class="text-sm text-gray-600">
+                            <i class="fas fa-clock mr-1"></i>
+                            Last updated: {{ post.updated_at.strftime('%B %d, %Y at %I:%M %p') if post.updated_at else post.created_at.strftime('%B %d, %Y at %I:%M %p') }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Featured Image -->
+                <div class="vintage-card p-6">
+                    <h3 class="text-lg font-bold mb-4 flapper-accent">
+                        <i class="fas fa-image mr-2"></i>Featured Image
+                    </h3>
+
+                    <div class="space-y-3">
+                        {% if post.featured_image_url %}
+                        <div class="mb-3">
+                            <img src="/{{ post.featured_image_url }}" alt="Current featured image"
+                                 class="w-full h-32 object-cover rounded-lg">
+                            <p class="text-xs text-gray-500 mt-1">Current image</p>
+                        </div>
+                        {% endif %}
+
+                        <input type="file" id="featured_image" name="featured_image"
+                               accept="image/*" class="vintage-input w-full text-sm">
+
+                        <div id="image-preview" class="hidden">
+                            <img id="preview-img" class="w-full h-32 object-cover rounded-lg">
+                            <button type="button" id="remove-image"
+                                    class="mt-2 text-red-600 hover:text-red-700 text-sm">
+                                <i class="fas fa-trash mr-1"></i>Remove New Image
+                            </button>
+                        </div>
+
+                        <p class="text-xs text-gray-500">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Upload a new image to replace the current one.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Tags -->
+                <div class="vintage-card p-6">
+                    <h3 class="text-lg font-bold mb-4 flapper-accent">
+                        <i class="fas fa-tags mr-2"></i>Tags
+                    </h3>
+
+                    <div class="space-y-3">
+                        <input type="text" id="tags" name="tags"
+                               value="{{ post.tags|join(', ') if post.tags else '' }}"
+                               class="vintage-input w-full text-sm"
+                               placeholder="technology, business, lifestyle">
+                        <p class="text-xs text-gray-500">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Separate tags with commas.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- SEO Settings -->
+                <div class="vintage-card p-6">
+                    <h3 class="text-lg font-bold mb-4 flapper-accent">
+                        <i class="fas fa-search mr-2"></i>SEO
+                    </h3>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-semibold mb-2 text-gray-700">
+                                Meta Description
+                            </label>
+                            <textarea name="meta_description" rows="3"
+                                      class="vintage-input w-full text-sm"
+                                      placeholder="Brief description for search engines...">{{ post.meta_description or '' }}</textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold mb-2 text-gray-700">
+                                Meta Keywords
+                            </label>
+                            <input type="text" name="meta_keywords"
+                                   value="{{ post.meta_keywords or '' }}"
+                                   class="vintage-input w-full text-sm"
+                                   placeholder="keyword1, keyword2, keyword3">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="space-y-3">
+                    <button type="submit" class="vintage-button w-full text-lg">
+                        <i class="fas fa-save mr-2"></i>Update Post
+                    </button>
+
+                    {% if post.is_published %}
+                    <a href="{{ url_for('blog.view_post', slug=post.slug) }}"
+                       class="block text-center border-2 border-blue-400 text-blue-600 hover:bg-blue-400 hover:text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300">
+                        <i class="fas fa-eye mr-2"></i>View Post
+                    </a>
+                    {% endif %}
+
+                    <a href="{{ url_for('blog.my_posts') }}"
+                       class="block text-center border-2 border-gray-300 text-gray-600 hover:bg-gray-100 px-6 py-3 rounded-lg font-semibold transition-all duration-300">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .editor-content {
+        min-height: 400px;
+        font-family: var(--body-font);
+        line-height: 1.6;
+        padding: 1.5rem;
+        border: none;
+        background: white;
+    }
+
+    .editor-content:focus {
+        outline: none;
+    }
+</style>
+
+<script>
+    // Image preview functionality
+    document.getElementById('featured_image').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const preview = document.getElementById('image-preview');
+        const img = document.getElementById('preview-img');
+
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                img.src = e.target.result;
+                preview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        } else {
+            preview.classList.add('hidden');
+        }
+    });
+
+    // Remove new image
+    document.getElementById('remove-image').addEventListener('click', function() {
+        document.getElementById('featured_image').value = '';
+        document.getElementById('image-preview').classList.add('hidden');
+    });
+</script>
+{% endblock %}

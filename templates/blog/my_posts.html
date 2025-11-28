@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}My Blog Posts - Opinian{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="container mx-auto px-4">
+        <!-- Header -->
+        <div class="mb-8 flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2 flapper-accent">
+                    <i class="fas fa-file-alt mr-3"></i>My Blog Posts
+                </h1>
+                <p class="text-xl text-gray-600">Manage your published and draft posts</p>
+            </div>
+            <a href="{{ url_for('blog.create_post') }}" class="vintage-button">
+                <i class="fas fa-plus mr-2"></i>New Post
+            </a>
+        </div>
+
+        <!-- Stats Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="vintage-card p-6 text-center">
+                <div class="text-3xl font-bold text-yellow-600 mb-2">
+                    {{ blog_posts|selectattr('is_published', 'equalto', true)|list|length }}
+                </div>
+                <div class="text-gray-600">Published Posts</div>
+            </div>
+            <div class="vintage-card p-6 text-center">
+                <div class="text-3xl font-bold text-blue-600 mb-2">
+                    {{ blog_posts|selectattr('is_published', 'equalto', false)|list|length }}
+                </div>
+                <div class="text-gray-600">Drafts</div>
+            </div>
+            <div class="vintage-card p-6 text-center">
+                <div class="text-3xl font-bold text-green-600 mb-2">
+                    {{ blog_posts|sum(attribute='view_count', start=0) }}
+                </div>
+                <div class="text-gray-600">Total Views</div>
+            </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="mb-6 flex gap-4 border-b border-gray-300">
+            <button class="tab-btn active px-4 py-2 font-semibold border-b-2 border-yellow-600" data-filter="all">
+                All Posts ({{ blog_posts|length }})
+            </button>
+            <button class="tab-btn px-4 py-2 font-semibold text-gray-600 hover:text-gray-800" data-filter="published">
+                Published ({{ blog_posts|selectattr('is_published', 'equalto', true)|list|length }})
+            </button>
+            <button class="tab-btn px-4 py-2 font-semibold text-gray-600 hover:text-gray-800" data-filter="draft">
+                Drafts ({{ blog_posts|selectattr('is_published', 'equalto', false)|list|length }})
+            </button>
+        </div>
+
+        <!-- Blog Posts List -->
+        {% if blog_posts %}
+        <div class="space-y-6">
+            {% for post in blog_posts %}
+            <div class="vintage-card p-6 hover:shadow-lg transition-shadow duration-300 post-item"
+                 data-status="{{ 'published' if post.is_published else 'draft' }}">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <!-- Status Badge -->
+                        {% if post.is_published %}
+                        <span class="inline-block px-3 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-full mb-3">
+                            <i class="fas fa-check-circle mr-1"></i>Published
+                        </span>
+                        {% else %}
+                        <span class="inline-block px-3 py-1 text-xs font-semibold bg-yellow-100 text-yellow-800 rounded-full mb-3">
+                            <i class="fas fa-clock mr-1"></i>Draft
+                        </span>
+                        {% endif %}
+
+                        <!-- Title -->
+                        <h3 class="text-2xl font-bold mb-2">
+                            {% if post.is_published %}
+                            <a href="{{ url_for('blog.view_post', slug=post.slug) }}"
+                               class="text-gray-800 hover:text-yellow-600 transition-colors">
+                                {{ post.title }}
+                            </a>
+                            {% else %}
+                            {{ post.title }}
+                            {% endif %}
+                        </h3>
+
+                        <!-- Excerpt -->
+                        {% if post.excerpt %}
+                        <p class="text-gray-600 mb-3">{{ post.excerpt[:150] }}{% if post.excerpt|length > 150 %}...{% endif %}</p>
+                        {% endif %}
+
+                        <!-- Meta Information -->
+                        <div class="flex flex-wrap gap-4 text-sm text-gray-500 mb-3">
+                            <span>
+                                <i class="fas fa-calendar mr-1"></i>
+                                {% if post.published_at %}
+                                Published: {{ post.published_at.strftime('%b %d, %Y') }}
+                                {% else %}
+                                Created: {{ post.created_at.strftime('%b %d, %Y') }}
+                                {% endif %}
+                            </span>
+                            {% if post.view_count %}
+                            <span>
+                                <i class="fas fa-eye mr-1"></i>
+                                {{ post.view_count }} views
+                            </span>
+                            {% endif %}
+                            {% if post.tags and post.tags|length > 0 %}
+                            <span>
+                                <i class="fas fa-tags mr-1"></i>
+                                {% for tag in post.tags[:3] %}
+                                    <span class="text-yellow-600">{{ tag }}</span>{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Tags -->
+                        {% if post.tags and post.tags|length > 0 %}
+                        <div class="flex flex-wrap gap-2">
+                            {% for tag in post.tags[:5] %}
+                            <span class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
+                                {{ tag }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="ml-6 flex flex-col gap-2">
+                        {% if post.is_published %}
+                        <a href="{{ url_for('blog.view_post', slug=post.slug) }}"
+                           class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-center">
+                            <i class="fas fa-eye mr-1"></i>View
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('blog.edit_post', post_id=post.id) }}"
+                           class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors text-center">
+                            <i class="fas fa-edit mr-1"></i>Edit
+                        </a>
+                        <button onclick="deletePost({{ post.id }}, '{{ post.title }}')"
+                                class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors">
+                            <i class="fas fa-trash mr-1"></i>Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="vintage-card p-12 text-center">
+            <i class="fas fa-file-alt text-6xl text-gray-300 mb-4"></i>
+            <h3 class="text-2xl font-bold text-gray-600 mb-2">No Blog Posts Yet</h3>
+            <p class="text-gray-500 mb-6">Start creating your first blog post to share your thoughts with the world!</p>
+            <a href="{{ url_for('blog.create_post') }}" class="vintage-button">
+                <i class="fas fa-plus mr-2"></i>Create Your First Post
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .tab-btn.active {
+        color: #d4af37;
+        border-bottom-color: #d4af37;
+    }
+
+    .tab-btn:hover:not(.active) {
+        color: #1a1a1a;
+    }
+</style>
+
+<script>
+    // Filter functionality
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const postItems = document.querySelectorAll('.post-item');
+
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const filter = this.dataset.filter;
+
+            // Update active tab
+            tabBtns.forEach(b => {
+                b.classList.remove('active', 'border-yellow-600', 'text-yellow-600');
+                b.classList.add('text-gray-600');
+            });
+            this.classList.add('active', 'border-yellow-600', 'text-yellow-600');
+            this.classList.remove('text-gray-600');
+
+            // Filter posts
+            postItems.forEach(post => {
+                if (filter === 'all') {
+                    post.style.display = 'block';
+                } else {
+                    if (post.dataset.status === filter) {
+                        post.style.display = 'block';
+                    } else {
+                        post.style.display = 'none';
+                    }
+                }
+            });
+        });
+    });
+
+    // Delete post function
+    function deletePost(postId, postTitle) {
+        if (confirm(`Are you sure you want to delete "${postTitle}"? This action cannot be undone.`)) {
+            fetch(`/blog/delete/${postId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Failed to delete post. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        }
+    }
+</script>
+{% endblock %}

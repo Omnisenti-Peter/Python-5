@@ -386,47 +386,91 @@
     toolbar.appendChild(aiButton);
     
     // Generate content with AI
-    generateBtn.addEventListener('click', function() {
+    generateBtn.addEventListener('click', async function() {
         const prompt = document.getElementById('ai-prompt').value;
         if (!prompt) {
             alert('Please enter a prompt for the AI.');
             return;
         }
-        
+
         this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Generating...';
         this.disabled = true;
-        
-        // Simulate AI generation
-        setTimeout(() => {
-            const generatedContent = generateMockContent(prompt);
-            aiGenerated.value = generatedContent;
-            aiOutput.classList.remove('hidden');
-            
+
+        try {
+            // Call the real AI API
+            const response = await fetch('/blog/generate-content', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    prompt: prompt,
+                    content_type: 'blog_post'
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                aiGenerated.value = result.content;
+                aiOutput.classList.remove('hidden');
+
+                // Show word count and reading time
+                console.log(`Generated ${result.word_count} words (${result.estimated_reading_time} min read)`);
+            } else {
+                alert('Error: ' + (result.message || result.error || 'Failed to generate content'));
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to generate content. Please try again.');
+        } finally {
             this.innerHTML = '<i class="fas fa-magic mr-2"></i>Generate Content';
             this.disabled = false;
-        }, 2000);
+        }
     });
     
     // Improve writing
-    improveBtn.addEventListener('click', function() {
+    improveBtn.addEventListener('click', async function() {
         const content = document.getElementById('content').value;
+        const instructions = document.getElementById('ai-prompt').value || 'Improve the writing quality, grammar, and engagement';
+
         if (!content) {
             alert('Please write some content first.');
             return;
         }
-        
+
         this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Improving...';
         this.disabled = true;
-        
-        // Simulate AI improvement
-        setTimeout(() => {
-            const improvedContent = improveContent(content);
-            aiGenerated.value = improvedContent;
-            aiOutput.classList.remove('hidden');
-            
+
+        try {
+            // Call the real AI API
+            const response = await fetch('/blog/improve-content', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    content: content,
+                    instructions: instructions
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                aiGenerated.value = result.content;
+                aiOutput.classList.remove('hidden');
+                console.log(`Improved content: ${result.word_count} words`);
+            } else {
+                alert('Error: ' + (result.message || result.error || 'Failed to improve content'));
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to improve content. Please try again.');
+        } finally {
             this.innerHTML = '<i class="fas fa-wand-magic-sparkles mr-2"></i>Improve Writing';
             this.disabled = false;
-        }, 1500);
+        }
     });
     
     // Insert content at cursor
@@ -453,29 +497,6 @@
             aiOutput.classList.add('hidden');
         }
     });
-    
-    // Mock AI content generation
-    function generateMockContent(prompt) {
-        return `<h2>Generated Content Based on: "${prompt}"</h2>
-        
-        <p>This is an AI-generated response to your prompt. The content would be tailored to your specific requirements and would include relevant information, examples, and insights.</p>
-        
-        <h3>Key Points</h3>
-        <ul>
-            <li>First important aspect of ${prompt}</li>
-            <li>Second relevant consideration</li>
-            <li>Third key insight or example</li>
-        </ul>
-        
-        <p>The conclusion would tie everything together and provide actionable insights for the reader.</p>`;
-    }
-    
-    function improveContent(content) {
-        return content.replace(/\b(good|nice|great)\b/g, 'exceptional')
-                     .replace(/\b(very|really)\b/g, 'highly')
-                     .replace(/\b(said|told)\b/g, 'explained')
-                     .replace(/([.!?])\s+([a-z])/g, (match, p1, p2) => p1 + ' ' + p2.toUpperCase());
-    }
     
     // Auto-save functionality
     let autoSaveTimer;

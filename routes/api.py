@@ -4,6 +4,7 @@ RESTful API endpoints for frontend integration
 """
 
 import jwt
+import logging
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import Blueprint, request, jsonify, session, current_app
@@ -11,6 +12,9 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from app import get_db_connection, log_user_activity
+from ai_service import ai_service
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint('api', __name__, url_prefix='/api')
 
@@ -404,28 +408,32 @@ def generate_ai_content(current_user_id):
         data = request.get_json()
         prompt = data.get('prompt')
         content_type = data.get('content_type', 'blog_post')
-        
+
         if not prompt:
             return jsonify({'message': 'Prompt is required'}), 400
-        
-        # TODO: Integrate with actual LLM API
-        # Mock response for now
-        generated_content = f"""
-        <h2>Generated Content</h2>
-        <p>This content was generated based on your prompt: "{prompt}"</p>
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. This is placeholder content that would be replaced by actual AI-generated text based on your specific requirements and the capabilities of the integrated AI service.</p>
-        """
-        
+
+        # Use AI service to generate content
+        result = ai_service.generate_blog_content(prompt, content_type)
+
         # Log activity
-        log_user_activity(current_user_id, 'api_ai_generate', 'ai_content', None, {'prompt': prompt[:100]})
-        
-        return jsonify({
-            'content': generated_content,
-            'word_count': len(generated_content.split()),
-            'estimated_reading_time': len(generated_content.split()) // 200  # 200 words per minute
-        })
-        
+        log_user_activity(
+            current_user_id,
+            'api_ai_generate',
+            'ai_content',
+            None,
+            {'prompt': prompt[:100], 'content_type': content_type}
+        )
+
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify({
+                'message': result.get('message', 'Failed to generate content'),
+                'error': result.get('error')
+            }), 500
+
     except Exception as e:
+        logger.error(f"API AI generate error: {e}")
         return jsonify({'message': 'Failed to generate content'}), 500
 
 @bp.route('/system/settings', methods=['GET'])
