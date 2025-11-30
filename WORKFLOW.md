@@ -1,20 +1,65 @@
 # Opinian Platform - System Workflow
 
+## Initial Setup Flow
+
+### 0. Platform Initialization Workflow
+```
+Deploy Application → Configure .env → Run init_db.py → Creates Database & Tables & Roles
+                                                              ↓
+                                              Prompts for SuperAdmin Credentials
+                                              (or uses environment variables)
+                                                              ↓
+                                              Creates First SuperAdmin → Setup Complete
+                                                              ↓
+                                              Start app.py → SuperAdmin Login → Platform Ready
+```
+
+**Steps:**
+1. `python init_db.py` - Creates database, tables, roles, permissions, AND SuperAdmin
+   - Interactive mode: Prompts for credentials
+   - Automated mode: Uses environment variables
+2. `python app.py` - Start the application
+3. SuperAdmin logs in via web interface at http://localhost:5000/login
+4. Platform is ready for use
+
+---
+
 ## User Flow Diagrams
 
 ### 1. User Registration and Authentication Flow
+
+**Public Self-Registration (Creates "User" role):**
 ```
-Start → Registration Form → Validate Input → Create User → Assign Default Role → Send Confirmation → Login Page
-                                    ↓
-                                Error Message → Registration Form
+User → /register → Fill Form → Validate Input → Create User → Assign "User" Role → Success → /login
+                                      ↓
+                                  Error → Show Message → /register
+```
+
+**Admin-Created Users (Any role):**
+```
+Admin/SuperAdmin → /admin/users/create → Fill Form → Select Role → Create User → Email Credentials
+                                                           ↓
+                                                   User receives credentials → Login → Dashboard
 ```
 
 ### 2. User Hierarchy and Permission Flow
 ```
-SuperAdmin → Creates Groups/Organizations → Creates Admin Users → Admin Creates Super Users/Users
-     ↓                                          ↓                                ↓
-Platform Management                    Group Management                    Content Creation
+Initial Setup → create_superadmin.py → First SuperAdmin Created
+                                              ↓
+SuperAdmin → Creates Admin Users → Assigns to Groups → Admin Logs In
+                ↓                                            ↓
+    Platform-wide Management                   Admin Creates SuperUsers/Users in Group
+                ↓                                            ↓
+    API Settings, All Groups                        Group Content & Theme Management
+            User Management                                  ↓
+                                                    Regular Users Create Blog Posts
 ```
+
+**Role Capabilities:**
+- **SuperAdmin:** Full platform control, create/manage all groups and users, API settings
+- **Admin:** Manage one group, create users within group, manage group content and themes
+- **SuperUser:** Create pages and blog posts with extended permissions
+- **User:** Create blog posts on existing pages
 
 ### 3. Content Creation Workflow
 ```
@@ -59,6 +104,21 @@ Frontend Request → API Gateway → Authentication Middleware → Route Handlin
 ```
 Admin → Access Dashboard → View User Matrix → Select User → Modify Permissions → Save Changes → Log Activity
 ```
+
+**For detailed user management procedures, see [USER_MANAGEMENT.md](USER_MANAGEMENT.md)**
+
+**User Creation Methods:**
+1. **First SuperAdmin:** Automatically prompted during `init_db.py` (one-time setup)
+   - Interactive: Type credentials when prompted
+   - Automated: Set credentials in `.env` file
+2. **Admin Users:** Created by SuperAdmin via `/admin/users/create`
+3. **SuperUser/User:** Created by SuperAdmin or Admin via `/admin/users/create`
+4. **Self-Registration:** Public users register at `/register` (always gets "User" role)
+
+**Environment Variable Setup (Optional):**
+- Set `SUPERADMIN_USERNAME`, `SUPERADMIN_EMAIL`, `SUPERADMIN_PASSWORD` in `.env`
+- `init_db.py` will use these for automated SuperAdmin creation (useful for CI/CD)
+- See [SECURITY.md](SECURITY.md) for credential management best practices
 
 ### 9. Content Moderation Flow
 ```

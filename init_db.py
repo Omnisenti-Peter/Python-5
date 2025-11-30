@@ -6,8 +6,12 @@ Creates database tables and initial data
 
 import os
 import sys
+import re
+import getpass
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+from psycopg2.extras import RealDictCursor
+from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -472,10 +476,165 @@ def create_indexes():
         print(f"Error creating indexes: {e}")
         sys.exit(1)
 
+def validate_email(email):
+    """Basic email validation"""
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(pattern, email) is not None
+
+def create_superadmin():
+    """Create the first SuperAdmin user if none exists"""
+    try:
+        conn = psycopg2.connect(
+            host=os.getenv('DB_HOST', 'localhost'),
+            user=os.getenv('DB_USER', 'postgres'),
+            password=os.getenv('DB_PASSWORD', ''),
+            database=os.getenv('DB_NAME', 'opinian'),
+            port=os.getenv('DB_PORT', '5432')
+        )
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Check if SuperAdmin already exists
+        cursor.execute("""
+            SELECT u.id, u.username, u.email
+            FROM users u
+            JOIN roles r ON u.role_id = r.id
+            WHERE r.name = 'SuperAdmin' AND u.is_active = TRUE
+        """)
+
+        existing_superadmins = cursor.fetchall()
+
+        if existing_superadmins:
+            print("\n⚠️  SuperAdmin user(s) already exist:")
+            for sa in existing_superadmins:
+                print(f"   - {sa['username']} ({sa['email']})")
+            print("\nSkipping SuperAdmin creation.")
+            cursor.close()
+            conn.close()
+            return
+
+        print("\n" + "="*60)
+        print("🔐 SuperAdmin Creation")
+        print("="*60)
+
+        # Check for environment variables first
+        env_username = os.getenv('SUPERADMIN_USERNAME')
+        env_email = os.getenv('SUPERADMIN_EMAIL')
+        env_password = os.getenv('SUPERADMIN_PASSWORD')
+
+        if env_username and env_email and env_password:
+            # Use environment variables
+            print("Using SuperAdmin credentials from environment variables...")
+            username = env_username
+            email = env_email
+            password = env_password
+            first_name = os.getenv('SUPERADMIN_FIRST_NAME', 'Super')
+            last_name = os.getenv('SUPERADMIN_LAST_NAME', 'Admin')
+        else:
+            # Interactive mode
+            print("No SuperAdmin credentials found in environment variables.")
+            print("Please provide SuperAdmin details:\n")
+
+            # Username
+            while True:
+                username = input("Username: ").strip()
+                if len(username) < 3:
+                    print("❌ Username must be at least 3 characters long.")
+                    continue
+                if ' ' in username:
+                    print("❌ Username cannot contain spaces.")
+                    continue
+                break
+
+            # Email
+            while True:
+                email = input("Email: ").strip()
+                if not validate_email(email):
+                    print("❌ Invalid email format.")
+                    continue
+                break
+
+            # Password
+            while True:
+                password = getpass.getpass("Password: ")
+                if len(password) < 8:
+                    print("❌ Password must be at least 8 characters long.")
+                    continue
+
+                password_confirm = getpass.getpass("Confirm Password: ")
+                if password != password_confirm:
+                    print("❌ Passwords do not match.")
+                    continue
+                break
+
+            # Names
+            first_name = input("First Name (default: Super): ").strip() or "Super"
+            last_name = input("Last Name (default: Admin): ").strip() or "Admin"
+
+        # Check if username or email already exists
+        cursor.execute("SELECT id FROM users WHERE username = %s OR email = %s",
+                      (username, email))
+        if cursor.fetchone():
+            print(f"\n❌ Username '{username}' or email '{email}' already exists.")
+            cursor.close()
+            conn.close()
+            return
+
+        # Get SuperAdmin role ID
+        cursor.execute("SELECT id FROM roles WHERE name = 'SuperAdmin'")
+        role_result = cursor.fetchone()
+
+        if not role_result:
+            print("\n❌ SuperAdmin role not found in database.")
+            cursor.close()
+            conn.close()
+            return
+
+        superadmin_role_id = role_result['id']
+
+        # Create the SuperAdmin user
+        password_hash = generate_password_hash(password)
+        cursor.execute("""
+            INSERT INTO users (username, email, password_hash, first_name, last_name, role_id, is_active)
+            VALUES (%s, %s, %s, %s, %s, %s, TRUE)
+            RETURNING id
+        """, (username, email, password_hash, first_name, last_name, superadmin_role_id))
+
+        user_id = cursor.fetchone()['id']
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        print(f"\n✅ SuperAdmin user created successfully!")
+        print(f"   User ID: {user_id}")
+        print(f"   Username: {username}")
+        print(f"   Email: {email}")
+        print(f"   Name: {first_name} {last_name}")
+
+    except Exception as e:
+        print(f"\n❌ Error creating SuperAdmin: {e}")
+        print("You can create a SuperAdmin later using: python create_superadmin.py")
+
 if __name__ == "__main__":
-    print("Starting database initialization...")
+    print("="*60)
+    print("🚀 Opinian Platform - Database Initialization")
+    print("="*60)
+
     create_database()
     create_tables()
     insert_initial_data()
     create_indexes()
-    print("Database initialization completed successfully!")
+
+    print("\n" + "="*60)
+    print("✅ Database initialization completed successfully!")
+    print("="*60)
+
+    # Create SuperAdmin user
+    create_superadmin()
+
+    print("\n" + "="*60)
+    print("🎉 Setup Complete!")
+    print("="*60)
+    print("\nYou can now start the application with:")
+    print("  python app.py")
+    print("\nThen navigate to: http://localhost:5000")
+    print("="*60)

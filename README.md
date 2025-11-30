@@ -12,13 +12,19 @@ A sophisticated multi-tenant blogging platform with 1920s flapper and 1940s noir
 
 ### 👥 User Management
 - **Multi-Tenant Architecture**: Organizations can create branded environments
-- **Role-Based Access Control**: 
-  - SuperAdmin: Full platform administration
-  - Admin: Group management and user creation
-  - SuperUser: Extended content creation capabilities
-  - User: Basic blogging and reading
+- **4-Tier Role System**:
+  - **SuperAdmin**: Full platform administration, manage all groups/organizations
+  - **Admin**: Group management and user creation within their organization
+  - **SuperUser**: Extended content creation capabilities (pages and posts)
+  - **User**: Basic blogging and reading
+- **Multiple User Creation Methods**:
+  - SuperAdmin creation via script (one-time setup)
+  - Admin panel user creation (any role)
+  - Public self-registration (creates User role)
 - **User Permissions Dashboard**: Matrix view of all users with editable permissions
 - **Activity Logging**: Comprehensive audit trail of user actions
+
+> 📖 **Detailed guide**: See [USER_MANAGEMENT.md](USER_MANAGEMENT.md) for complete user creation workflows
 
 ### ✍️ Content Management
 - **Blog Posts**: Create, edit, and publish articles with rich media
@@ -93,14 +99,19 @@ cp .env.example .env
 # Edit .env with your configuration
 ```
 
-5. **Setup database**
+5. **Setup database and create SuperAdmin**
 ```bash
 python init_db.py
 ```
+This will:
+- Create database and tables
+- Set up roles and permissions
+- Prompt you to create the first SuperAdmin user
+- You can provide credentials interactively or via environment variables
 
 6. **Run the application**
 ```bash
-python run.py
+python app.py
 ```
 
 The application will be available at `http://localhost:5000`
@@ -142,17 +153,50 @@ MAIL_PORT=587
 MAIL_USE_TLS=True
 MAIL_USERNAME=your_email@gmail.com
 MAIL_PASSWORD=your_email_password
+
+# SuperAdmin Creation (optional - for automated deployment)
+# If not set, init_db.py will prompt interactively
+SUPERADMIN_USERNAME=admin
+SUPERADMIN_EMAIL=admin@example.com
+SUPERADMIN_PASSWORD=your_secure_password
+SUPERADMIN_FIRST_NAME=Super
+SUPERADMIN_LAST_NAME=Admin
 ```
+
+> **Note:** For security, SuperAdmin credentials via environment variables should only be used in automated deployment scenarios. For local development, use interactive mode.
 
 ## Usage
 
 ### First Time Setup
 
-1. **Register an account** at `http://localhost:5000/register`
-2. **First user becomes SuperAdmin** automatically
-3. **Create organizations** as SuperAdmin
-4. **Invite users** to organizations
-5. **Assign roles** and permissions
+1. **Initialize database** - This creates tables, roles, and SuperAdmin
+   ```bash
+   python init_db.py
+   ```
+   - The script will prompt you to create the first SuperAdmin
+   - Provide username, email, and secure password when prompted
+   - Alternatively, set SuperAdmin credentials in `.env` for automated setup
+
+2. **Log in as SuperAdmin** at `http://localhost:5000/login`
+
+3. **Create Admin users** via `/admin/users/create`
+   - Each Admin typically manages one organization/group
+
+4. **Admins create their organizations** and configure:
+   - Group name and description
+   - Custom themes
+   - About and Contact pages
+
+5. **Admins create users** within their groups:
+   - SuperUsers (can create pages and posts)
+   - Regular Users (can create posts)
+
+6. **Enable public registration** (optional)
+   - Users can self-register at `/register`
+   - Self-registered users get "User" role
+   - Admins can later assign them to groups
+
+> 📖 **For detailed workflows**, see [USER_MANAGEMENT.md](USER_MANAGEMENT.md) and [WORKFLOW.md](WORKFLOW.md)
 
 ### Creating Content
 
@@ -278,6 +322,11 @@ CMD ["python", "run.py"]
 - Regular security updates
 - Monitor user activity logs
 - Implement rate limiting for API endpoints
+- **Never commit `.env` file to git** (already in `.gitignore`)
+- Use strong passwords for SuperAdmin (minimum 12 characters)
+- Store production credentials in secrets manager (AWS Secrets, Azure Key Vault)
+
+> 🔐 **Detailed security guide**: See [SECURITY.md](SECURITY.md) for credential management best practices
 
 ## Contributing
 

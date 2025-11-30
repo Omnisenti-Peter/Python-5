@@ -110,25 +110,99 @@
         }
         
         .navbar {
-            background: rgba(26, 26, 26, 0.95);
+            background: rgba(26, 26, 26, 0.98);
             backdrop-filter: blur(10px);
-            border-bottom: 2px solid var(--secondary-color);
+            border-bottom: 3px solid var(--secondary-color);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            position: relative;
         }
-        
+
         .navbar a {
-            color: var(--background-color);
-            transition: color 0.3s ease;
+            color: #f5f5dc;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
         }
-        
+
         .navbar a:hover {
             color: var(--secondary-color);
+            text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
         }
-        
+
+        .navbar button {
+            color: #f5f5dc;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        /* User Dropdown Menu Styling */
+        .user-dropdown {
+            position: relative;
+            z-index: 10000;
+        }
+
+        .user-dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 0.5rem;
+            width: 12rem;
+            background: #ffffff;
+            border: 2px solid var(--secondary-color);
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 10001;
+        }
+
+        .user-dropdown:hover .user-dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .user-dropdown-menu a {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: #1a1a1a !important;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .user-dropdown-menu a:last-child {
+            border-bottom: none;
+        }
+
+        .user-dropdown-menu a:hover {
+            background: linear-gradient(135deg, #d4af37, #f4e4bc);
+            color: #1a1a1a !important;
+            padding-left: 1.25rem;
+        }
+
+        .user-dropdown-menu hr {
+            margin: 0.5rem 0;
+            border: none;
+            border-top: 2px solid var(--secondary-color);
+        }
+
+        .user-dropdown-menu .logout-link {
+            color: #dc2626 !important;
+            font-weight: 600;
+        }
+
+        .user-dropdown-menu .logout-link:hover {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+        }
+
         .flash-messages {
             position: fixed;
-            top: 20px;
+            top: 80px;
             right: 20px;
-            z-index: 1000;
+            z-index: 10002;
         }
         
         .flash-message {
@@ -215,31 +289,31 @@
                     
                     {% if session.user_id %}
                         <!-- Authenticated User Menu -->
-                        <div class="relative group">
-                            <button class="flex items-center hover:text-yellow-300 transition-colors">
-                                <i class="fas fa-user mr-1"></i>{{ session.username }}
-                                <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                        <div class="user-dropdown">
+                            <button class="flex items-center hover:text-yellow-300 transition-colors font-semibold">
+                                <i class="fas fa-user-circle mr-2 text-lg"></i>{{ session.username }}
+                                <i class="fas fa-chevron-down ml-2 text-xs"></i>
                             </button>
-                            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                                <a href="{{ url_for('dashboard') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                            <div class="user-dropdown-menu">
+                                <a href="{{ url_for('dashboard') }}">
                                     <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
                                 </a>
-                                <a href="{{ url_for('blog.my_posts') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                                <a href="{{ url_for('blog.my_posts') }}">
                                     <i class="fas fa-edit mr-2"></i>My Posts
                                 </a>
-                                <a href="{{ url_for('pages.user_profile', username=session.username) }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                                <a href="{{ url_for('pages.user_profile', username=session.username) }}">
                                     <i class="fas fa-user-circle mr-2"></i>Profile
                                 </a>
-                                
+
                                 {% if session.user_role in ['SuperAdmin', 'Admin'] %}
-                                    <hr class="my-2">
-                                    <a href="{{ url_for('admin.dashboard') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
-                                        <i class="fas fa-cogs mr-2"></i>Admin
+                                    <hr>
+                                    <a href="{{ url_for('admin.dashboard') }}">
+                                        <i class="fas fa-cogs mr-2"></i>Admin Panel
                                     </a>
                                 {% endif %}
-                                
-                                <hr class="my-2">
-                                <a href="{{ url_for('logout') }}" class="block px-4 py-2 text-red-600 hover:bg-red-50">
+
+                                <hr>
+                                <a href="{{ url_for('logout') }}" class="logout-link">
                                     <i class="fas fa-sign-out-alt mr-2"></i>Logout
                                 </a>
                             </div>

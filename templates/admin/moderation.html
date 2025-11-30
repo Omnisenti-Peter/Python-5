@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Moderation Queue - Admin{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold mb-2">
+            <i class="fas fa-flag mr-3 text-orange-600"></i>Moderation Queue
+        </h1>
+        <p class="text-gray-600">Review content pending moderation</p>
+    </div>
+
+    <div class="vintage-card p-6">
+        {% if queue_items %}
+        <div class="space-y-4">
+            {% for item in queue_items %}
+            <div class="border-2 border-gray-200 rounded-lg p-4 hover:border-yellow-600 transition-colors">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span class="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-semibold">
+                            {{ item.content_type }}
+                        </span>
+                        <p class="mt-2 text-sm text-gray-600">
+                            Submitted by: <strong>{{ item.username }}</strong>
+                        </p>
+                        <p class="text-xs text-gray-500">
+                            {{ item.created_at.strftime('%Y-%m-%d %H:%M') if item.created_at else 'N/A' }}
+                        </p>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+                            <i class="fas fa-check mr-1"></i>Approve
+                        </button>
+                        <button class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                            <i class="fas fa-times mr-1"></i>Reject
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-8 text-gray-500">
+            <i class="fas fa-check-circle text-4xl mb-3 text-green-500"></i>
+            <p>No items pending moderation.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
