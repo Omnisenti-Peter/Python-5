@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Themes - Opinian{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-4xl font-bold mb-2">
+                <i class="fas fa-palette mr-3 text-purple-600"></i>Theme Management
+            </h1>
+            <p class="text-gray-600">Customize your organization's appearance</p>
+        </div>
+        <a href="{{ url_for('themes.create_theme') }}" class="vintage-button">
+            <i class="fas fa-plus mr-2"></i>Create New Theme
+        </a>
+    </div>
+
+    {% if themes %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for theme in themes %}
+        <div class="vintage-card overflow-hidden">
+            <div class="p-6">
+                <h3 class="text-xl font-bold mb-2">{{ theme.name }}</h3>
+                <p class="text-gray-600 text-sm mb-4">{{ theme.description or 'No description' }}</p>
+
+                {% if theme.is_active %}
+                <span class="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold mb-4">
+                    <i class="fas fa-check-circle mr-1"></i>Active
+                </span>
+                {% endif %}
+
+                <div class="flex justify-between items-center mt-4">
+                    <div class="flex space-x-2">
+                        <a href="{{ url_for('themes.edit_theme', theme_id=theme.id) }}"
+                           class="text-blue-600 hover:text-blue-800" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{{ url_for('themes.preview_theme', theme_id=theme.id) }}"
+                           class="text-green-600 hover:text-green-800" title="Preview">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </div>
+                    <form method="POST" action="{{ url_for('themes.apply_theme', theme_id=theme.id) }}" class="inline">
+                        <button type="submit" class="vintage-button text-sm py-1 px-3">
+                            Apply
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="vintage-card p-12 text-center">
+        <i class="fas fa-palette text-6xl text-gray-300 mb-4"></i>
+        <h3 class="text-xl font-semibold text-gray-600 mb-2">No themes yet</h3>
+        <p class="text-gray-500 mb-4">Create your first custom theme</p>
+        <a href="{{ url_for('themes.create_theme') }}" class="vintage-button inline-block">
+            <i class="fas fa-plus mr-2"></i>Create Theme
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

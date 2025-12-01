@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Create Theme - Opinian{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-3xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold mb-2">
+                <i class="fas fa-palette mr-3 text-purple-600"></i>Create Custom Theme
+            </h1>
+            <p class="text-gray-600">Design a unique theme for your organization</p>
+        </div>
+
+        <!-- Theme Creation Options -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- Manual Theme Creation -->
+            <div class="vintage-card p-6 hover:shadow-2xl transition-shadow cursor-pointer border-2 border-transparent hover:border-yellow-600"
+                 onclick="document.getElementById('manual-form').scrollIntoView({behavior: 'smooth'})">
+                <div class="text-center">
+                    <i class="fas fa-code text-5xl text-blue-600 mb-4"></i>
+                    <h3 class="text-xl font-bold mb-2">Manual Creation</h3>
+                    <p class="text-gray-600 text-sm">
+                        Create a theme using custom CSS and color variables
+                    </p>
+                </div>
+            </div>
+
+            <!-- AI-Powered Theme Creation -->
+            <a href="{{ url_for('themes.ai_create_theme') }}"
+               class="vintage-card p-6 hover:shadow-2xl transition-shadow border-2 border-transparent hover:border-yellow-600 block">
+                <div class="text-center">
+                    <i class="fas fa-magic text-5xl text-purple-600 mb-4"></i>
+                    <h3 class="text-xl font-bold mb-2">AI-Powered Creation</h3>
+                    <p class="text-gray-600 text-sm">
+                        Let AI generate a theme from your description
+                    </p>
+                </div>
+            </a>
+        </div>
+
+        <!-- Manual Theme Creation Form -->
+        <div id="manual-form" class="vintage-card p-8">
+            <h2 class="text-2xl font-bold mb-6">
+                <i class="fas fa-brush mr-2"></i>Manual Theme Configuration
+            </h2>
+
+            <form method="POST" action="{{ url_for('themes.create_theme') }}">
+                <!-- Theme Name -->
+                <div class="mb-6">
+                    <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-tag mr-1"></i>Theme Name *
+                    </label>
+                    <input type="text" id="name" name="name" required
+                           class="vintage-input w-full" placeholder="e.g., Midnight Blue Theme">
+                </div>
+
+                <!-- Theme Description -->
+                <div class="mb-6">
+                    <label for="description" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-align-left mr-1"></i>Description
+                    </label>
+                    <textarea id="description" name="description" rows="3"
+                              class="vintage-input w-full"
+                              placeholder="Brief description of your theme..."></textarea>
+                </div>
+
+                <!-- Color Variables -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-bold mb-4 text-gray-700">
+                        <i class="fas fa-fill-drip mr-2"></i>Color Palette
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Primary Color -->
+                        <div>
+                            <label for="primary_color" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Primary Color
+                            </label>
+                            <div class="flex items-center space-x-2">
+                                <input type="color" id="primary_color" name="primary_color"
+                                       value="#1a1a1a" class="h-10 w-16 border-2 border-gray-300 rounded">
+                                <input type="text" value="#1a1a1a"
+                                       class="vintage-input flex-1" readonly
+                                       id="primary_color_text">
+                            </div>
+                        </div>
+
+                        <!-- Secondary Color -->
+                        <div>
+                            <label for="secondary_color" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Secondary Color
+                            </label>
+                            <div class="flex items-center space-x-2">
+                                <input type="color" id="secondary_color" name="secondary_color"
+                                       value="#d4af37" class="h-10 w-16 border-2 border-gray-300 rounded">
+                                <input type="text" value="#d4af37"
+                                       class="vintage-input flex-1" readonly
+                                       id="secondary_color_text">
+                            </div>
+                        </div>
+
+                        <!-- Background Color -->
+                        <div>
+                            <label for="background_color" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Background Color
+                            </label>
+                            <div class="flex items-center space-x-2">
+                                <input type="color" id="background_color" name="background_color"
+                                       value="#f5f5dc" class="h-10 w-16 border-2 border-gray-300 rounded">
+                                <input type="text" value="#f5f5dc"
+                                       class="vintage-input flex-1" readonly
+                                       id="background_color_text">
+                            </div>
+                        </div>
+
+                        <!-- Text Color -->
+                        <div>
+                            <label for="text_color" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Text Color
+                            </label>
+                            <div class="flex items-center space-x-2">
+                                <input type="color" id="text_color" name="text_color"
+                                       value="#2c2c2c" class="h-10 w-16 border-2 border-gray-300 rounded">
+                                <input type="text" value="#2c2c2c"
+                                       class="vintage-input flex-1" readonly
+                                       id="text_color_text">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom CSS (Optional) -->
+                <div class="mb-6">
+                    <label for="custom_css" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-code mr-1"></i>Custom CSS (Optional)
+                    </label>
+                    <textarea id="custom_css" name="custom_css" rows="8"
+                              class="vintage-input w-full font-mono text-sm"
+                              placeholder="/* Add custom CSS here */&#10;.custom-class {&#10;    color: #yourcolor;&#10;}"></textarea>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Advanced users can add custom CSS to override default styles
+                    </p>
+                </div>
+
+                <!-- Preview Section -->
+                <div class="mb-6 p-6 border-2 border-gray-200 rounded-lg" id="theme-preview">
+                    <h4 class="text-sm font-semibold text-gray-700 mb-3">Theme Preview</h4>
+                    <div class="space-y-3" style="background-color: var(--bg-preview, #f5f5dc); padding: 1rem; border-radius: 8px;">
+                        <h1 style="color: var(--primary-preview, #1a1a1a); font-family: 'Playfair Display', serif;">
+                            Sample Heading
+                        </h1>
+                        <p style="color: var(--text-preview, #2c2c2c);">
+                            This is how your text will look with the selected colors.
+                        </p>
+                        <button type="button"
+                                style="background: var(--secondary-preview, #d4af37); color: var(--primary-preview, #1a1a1a); padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600;">
+                            Sample Button
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex justify-between items-center">
+                    <a href="{{ url_for('themes.index') }}" class="text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-arrow-left mr-1"></i>Back to Themes
+                    </a>
+                    <button type="submit" class="vintage-button">
+                        <i class="fas fa-save mr-2"></i>Create Theme
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Update color preview in real-time
+const colorInputs = ['primary_color', 'secondary_color', 'background_color', 'text_color'];
+
+colorInputs.forEach(id => {
+    const colorInput = document.getElementById(id);
+    const textInput = document.getElementById(id + '_text');
+
+    colorInput.addEventListener('input', (e) => {
+        textInput.value = e.target.value;
+        updatePreview();
+    });
+});
+
+function updatePreview() {
+    const preview = document.getElementById('theme-preview');
+    const primary = document.getElementById('primary_color').value;
+    const secondary = document.getElementById('secondary_color').value;
+    const background = document.getElementById('background_color').value;
+    const text = document.getElementById('text_color').value;
+
+    preview.style.setProperty('--primary-preview', primary);
+    preview.style.setProperty('--secondary-preview', secondary);
+    preview.style.setProperty('--bg-preview', background);
+    preview.style.setProperty('--text-preview', text);
+}
+
+// Initial preview
+updatePreview();
+</script>
+{% endblock %}

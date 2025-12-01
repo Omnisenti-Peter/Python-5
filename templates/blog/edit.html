@@ -2,242 +2,771 @@
 
 {% block title %}Edit Post - {{ post.title }} - Opinian{% endblock %}
 
+{% block extra_css %}
+<!-- Quill Rich Text Editor CSS -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<style>
+    .ql-editor {
+        min-height: 400px;
+        font-size: 16px;
+        line-height: 1.6;
+    }
+    .ql-toolbar {
+        background: #f8f9fa;
+        border-radius: 8px 8px 0 0;
+    }
+    .ql-container {
+        font-family: var(--body-font);
+        border-radius: 0 0 8px 8px;
+    }
+    .preview-mode {
+        display: none;
+    }
+    .preview-mode.active {
+        display: block;
+    }
+    .device-preview {
+        margin: 0 auto;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        background: white;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        overflow: auto;
+    }
+    .device-preview.desktop { max-width: 100%; }
+    .device-preview.tablet { max-width: 768px; }
+    .device-preview.mobile { max-width: 375px; }
+    .code-view {
+        display: none;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 20px;
+        border-radius: 8px;
+        overflow-x: auto;
+    }
+    .code-view.active {
+        display: block;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8">
     <div class="container mx-auto px-4">
         <!-- Header -->
-        <div class="mb-8">
-            <h1 class="text-4xl font-bold mb-2 flapper-accent">
-                <i class="fas fa-edit mr-3"></i>Edit Blog Post
-            </h1>
-            <p class="text-xl text-gray-600">Update your post content and settings</p>
+        <div class="mb-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">
+                    <i class="fas fa-edit mr-3 text-blue-600"></i>Edit Blog Post
+                </h1>
+                <p class="text-gray-600">Update your post content and settings</p>
+            </div>
+            <div class="flex space-x-2">
+                <button type="button" onclick="togglePreview()" class="vintage-button text-sm">
+                    <i class="fas fa-eye mr-2"></i>Preview
+                </button>
+                <button type="button" onclick="exportHTML()" class="vintage-button text-sm">
+                    <i class="fas fa-download mr-2"></i>Export HTML
+                </button>
+            </div>
         </div>
 
-        <form method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Main Content -->
-            <div class="lg:col-span-2 space-y-6">
-                <!-- Title -->
-                <div class="vintage-card p-6">
-                    <label for="title" class="block text-lg font-semibold mb-3 text-gray-700">
-                        <i class="fas fa-heading mr-2"></i>Post Title
-                    </label>
-                    <input type="text" id="title" name="title" required
-                           value="{{ post.title }}"
-                           class="vintage-input w-full text-lg"
-                           placeholder="Enter a compelling title for your blog post...">
-                </div>
-
-                <!-- Content Editor -->
-                <div class="vintage-card">
-                    <div class="editor-toolbar">
-                        <div class="flex items-center space-x-2 text-white">
-                            <button type="button" class="p-2 hover:bg-gray-600 rounded" title="Bold">
-                                <i class="fas fa-bold"></i>
-                            </button>
-                            <button type="button" class="p-2 hover:bg-gray-600 rounded" title="Italic">
-                                <i class="fas fa-italic"></i>
-                            </button>
-                            <button type="button" class="p-2 hover:bg-gray-600 rounded" title="Underline">
-                                <i class="fas fa-underline"></i>
-                            </button>
-                            <div class="w-px h-6 bg-gray-600"></div>
-                            <button type="button" class="p-2 hover:bg-gray-600 rounded" title="Insert Link">
-                                <i class="fas fa-link"></i>
-                            </button>
-                            <button type="button" class="p-2 hover:bg-gray-600 rounded" title="Insert Image">
-                                <i class="fas fa-image"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <textarea id="content" name="content" required
-                              class="editor-content w-full" rows="20"
-                              placeholder="Start writing your blog post content here...">{{ post.content }}</textarea>
-                </div>
-
-                <!-- Excerpt -->
-                <div class="vintage-card p-6">
-                    <label for="excerpt" class="block text-lg font-semibold mb-3 text-gray-700">
-                        <i class="fas fa-quote-left mr-2"></i>Excerpt
-                    </label>
-                    <textarea id="excerpt" name="excerpt" rows="3"
-                              class="vintage-input w-full"
-                              placeholder="Write a brief summary of your blog post (optional)...">{{ post.excerpt or '' }}</textarea>
-                </div>
-            </div>
-
-            <!-- Sidebar -->
-            <div class="space-y-6">
-                <!-- Publish Settings -->
-                <div class="vintage-card p-6">
-                    <h3 class="text-lg font-bold mb-4 flapper-accent">
-                        <i class="fas fa-cog mr-2"></i>Publish Settings
-                    </h3>
-
-                    <div class="space-y-4">
-                        <label class="flex items-center">
-                            <input type="checkbox" id="is_published" name="is_published"
-                                   {{ 'checked' if post.is_published else '' }}
-                                   class="mr-3 text-yellow-600">
-                            <span class="text-gray-700">
-                                <i class="fas fa-globe mr-1"></i>Published
-                            </span>
+        <!-- Editor/Preview Toggle -->
+        <div id="editor-container">
+            <form method="POST" enctype="multipart/form-data" id="blog-form" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Main Content -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Title -->
+                    <div class="vintage-card p-6">
+                        <label for="title" class="block text-lg font-semibold mb-3 text-gray-700">
+                            <i class="fas fa-heading mr-2"></i>Post Title *
                         </label>
-
-                        {% if post.published_at %}
-                        <div class="text-sm text-gray-600">
-                            <i class="fas fa-calendar-check mr-1"></i>
-                            Published: {{ post.published_at.strftime('%B %d, %Y at %I:%M %p') }}
-                        </div>
-                        {% endif %}
-
-                        <div class="text-sm text-gray-600">
-                            <i class="fas fa-clock mr-1"></i>
-                            Last updated: {{ post.updated_at.strftime('%B %d, %Y at %I:%M %p') if post.updated_at else post.created_at.strftime('%B %d, %Y at %I:%M %p') }}
-                        </div>
+                        <input type="text" id="title" name="title" required
+                               value="{{ post.title }}"
+                               class="vintage-input w-full text-lg"
+                               placeholder="Enter a compelling title...">
                     </div>
-                </div>
 
-                <!-- Featured Image -->
-                <div class="vintage-card p-6">
-                    <h3 class="text-lg font-bold mb-4 flapper-accent">
-                        <i class="fas fa-image mr-2"></i>Featured Image
-                    </h3>
-
-                    <div class="space-y-3">
-                        {% if post.featured_image_url %}
-                        <div class="mb-3">
-                            <img src="/{{ post.featured_image_url }}" alt="Current featured image"
-                                 class="w-full h-32 object-cover rounded-lg">
-                            <p class="text-xs text-gray-500 mt-1">Current image</p>
-                        </div>
-                        {% endif %}
-
-                        <input type="file" id="featured_image" name="featured_image"
-                               accept="image/*" class="vintage-input w-full text-sm">
-
-                        <div id="image-preview" class="hidden">
-                            <img id="preview-img" class="w-full h-32 object-cover rounded-lg">
-                            <button type="button" id="remove-image"
-                                    class="mt-2 text-red-600 hover:text-red-700 text-sm">
-                                <i class="fas fa-trash mr-1"></i>Remove New Image
+                    <!-- View Mode Tabs -->
+                    <div class="vintage-card p-4">
+                        <div class="flex space-x-2 border-b-2 border-gray-200 pb-2">
+                            <button type="button" onclick="switchView('editor')"
+                                    class="view-tab px-4 py-2 font-semibold rounded-t active" id="editor-tab">
+                                <i class="fas fa-edit mr-2"></i>Editor
+                            </button>
+                            <button type="button" onclick="switchView('code')"
+                                    class="view-tab px-4 py-2 font-semibold rounded-t" id="code-tab">
+                                <i class="fas fa-code mr-2"></i>Code View
                             </button>
                         </div>
+                    </div>
 
-                        <p class="text-xs text-gray-500">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            Upload a new image to replace the current one.
-                        </p>
+                    <!-- Rich Text Editor -->
+                    <div class="vintage-card" id="editor-view">
+                        <div id="editor"></div>
+                        <input type="hidden" name="content" id="content-hidden">
+                    </div>
+
+                    <!-- Code View -->
+                    <div class="vintage-card code-view" id="code-view">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-white font-semibold">HTML Code</h3>
+                            <button type="button" onclick="copyCode()" class="text-white hover:text-yellow-300">
+                                <i class="fas fa-copy mr-2"></i>Copy
+                            </button>
+                        </div>
+                        <pre id="code-content" class="text-sm"></pre>
+                    </div>
+
+                    <!-- Excerpt -->
+                    <div class="vintage-card p-6">
+                        <label for="excerpt" class="block text-lg font-semibold mb-3 text-gray-700">
+                            <i class="fas fa-quote-left mr-2"></i>Excerpt (Optional)
+                        </label>
+                        <textarea id="excerpt" name="excerpt" rows="3"
+                                  class="vintage-input w-full"
+                                  placeholder="Brief summary of your post...">{{ post.excerpt or '' }}</textarea>
+                    </div>
+
+                    <!-- SEO Settings -->
+                    <div class="vintage-card p-6">
+                        <h3 class="text-lg font-bold mb-4">
+                            <i class="fas fa-search mr-2 text-blue-600"></i>SEO Settings
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="meta_description" class="block text-sm font-semibold mb-2">
+                                    Meta Description
+                                </label>
+                                <textarea id="meta_description" name="meta_description" rows="2"
+                                          class="vintage-input w-full text-sm"
+                                          placeholder="Description for search engines..."
+                                          maxlength="160">{{ post.meta_description or '' }}</textarea>
+                                <p class="text-xs text-gray-500 mt-1">Max 160 characters</p>
+                            </div>
+                            <div>
+                                <label for="meta_keywords" class="block text-sm font-semibold mb-2">
+                                    Meta Keywords
+                                </label>
+                                <input type="text" id="meta_keywords" name="meta_keywords"
+                                       value="{{ post.meta_keywords or '' }}"
+                                       class="vintage-input w-full text-sm"
+                                       placeholder="keyword1, keyword2, keyword3">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Tags -->
-                <div class="vintage-card p-6">
-                    <h3 class="text-lg font-bold mb-4 flapper-accent">
-                        <i class="fas fa-tags mr-2"></i>Tags
-                    </h3>
+                <!-- Sidebar -->
+                <div class="space-y-6">
+                    <!-- Publish Actions -->
+                    <div class="vintage-card p-6">
+                        <h3 class="text-lg font-bold mb-4">
+                            <i class="fas fa-cog mr-2 text-gray-600"></i>Publish Settings
+                        </h3>
 
-                    <div class="space-y-3">
-                        <input type="text" id="tags" name="tags"
+                        <!-- Current Status -->
+                        <div class="space-y-2 mb-4 p-3 bg-gray-50 rounded">
+                            <div class="text-sm">
+                                <span class="font-semibold">Status:</span>
+                                {% if post.is_published %}
+                                <span class="text-green-600"><i class="fas fa-check-circle mr-1"></i>Published</span>
+                                {% else %}
+                                <span class="text-yellow-600"><i class="fas fa-clock mr-1"></i>Draft</span>
+                                {% endif %}
+                            </div>
+                            {% if post.published_at %}
+                            <div class="text-sm text-gray-600">
+                                <i class="fas fa-calendar-check mr-1"></i>
+                                Published: {{ post.published_at.strftime('%B %d, %Y at %I:%M %p') }}
+                            </div>
+                            {% endif %}
+                            <div class="text-sm text-gray-600">
+                                <i class="fas fa-clock mr-1"></i>
+                                Last updated: {{ post.updated_at.strftime('%B %d, %Y') if post.updated_at else post.created_at.strftime('%B %d, %Y') }}
+                            </div>
+                        </div>
+
+                        <!-- Publish Type -->
+                        <div class="space-y-3 mb-4">
+                            <label class="flex items-center">
+                                <input type="radio" name="publish_type" value="immediate"
+                                       {{ 'checked' if not post.published_at or post.is_published else '' }}
+                                       class="mr-3" onchange="toggleSchedule()">
+                                <span class="text-gray-700">
+                                    <i class="fas fa-bolt mr-1"></i>Publish immediately
+                                </span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="publish_type" value="scheduled"
+                                       {{ 'checked' if post.published_at and not post.is_published else '' }}
+                                       class="mr-3" onchange="toggleSchedule()">
+                                <span class="text-gray-700">
+                                    <i class="fas fa-clock mr-1"></i>Schedule for later
+                                </span>
+                            </label>
+                        </div>
+
+                        <!-- Publish Date -->
+                        <div id="publish-date-container" class="mb-4 {{ 'hidden' if not post.published_at or post.is_published else '' }}">
+                            <label for="publish_date" class="block text-sm font-semibold mb-2">
+                                Publish Date
+                            </label>
+                            <input type="datetime-local" id="publish_date" name="publish_date"
+                                   value="{{ post.published_at.strftime('%Y-%m-%dT%H:%M') if post.published_at else '' }}"
+                                   class="vintage-input w-full text-sm">
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="space-y-3">
+                            <button type="submit" name="action" value="publish" class="vintage-button w-full">
+                                <i class="fas fa-save mr-2"></i>{% if post.is_published %}Update{% else %}Publish{% endif %}
+                            </button>
+                            <button type="submit" name="action" value="draft"
+                                    class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-50">
+                                <i class="fas fa-file mr-2"></i>Save as Draft
+                            </button>
+                            {% if post.is_published %}
+                            <a href="{{ url_for('blog.view_post', slug=post.slug) }}"
+                               class="block text-center px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50">
+                                <i class="fas fa-eye mr-2"></i>View Post
+                            </a>
+                            {% endif %}
+                            <a href="{{ url_for('blog.my_posts') }}"
+                               class="block text-center px-4 py-2 border-2 border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50">
+                                <i class="fas fa-arrow-left mr-2"></i>Back to My Posts
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Featured Image -->
+                    <div class="vintage-card p-6">
+                        <h3 class="text-lg font-bold mb-4">
+                            <i class="fas fa-image mr-2 text-purple-600"></i>Featured Image
+                        </h3>
+                        {% if post.featured_image_url %}
+                        <div class="mb-4">
+                            <img src="/{{ post.featured_image_url }}" alt="Current featured image"
+                                 class="w-full rounded-lg">
+                            <p class="text-xs text-gray-500 mt-2">Current image</p>
+                        </div>
+                        {% endif %}
+                        <div id="image-preview" class="mb-4 hidden">
+                            <img id="preview-img" src="" alt="Preview" class="w-full rounded-lg">
+                            <button type="button" onclick="removeImage()"
+                                    class="text-red-600 text-sm mt-2 hover:underline">
+                                <i class="fas fa-times mr-1"></i>Remove New Image
+                            </button>
+                        </div>
+                        <label for="featured_image" class="block cursor-pointer">
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-yellow-600 transition-colors">
+                                <i class="fas fa-upload text-3xl text-gray-400 mb-2"></i>
+                                <p class="text-sm text-gray-600">Click to upload new image</p>
+                                <p class="text-xs text-gray-500 mt-1">JPG, PNG, GIF (Max 5MB)</p>
+                            </div>
+                        </label>
+                        <input type="file" id="featured_image" name="featured_image"
+                               accept="image/*" class="hidden" onchange="previewImage(event)">
+                    </div>
+
+                    <!-- Tags -->
+                    <div class="vintage-card p-6">
+                        <h3 class="text-lg font-bold mb-4">
+                            <i class="fas fa-tags mr-2 text-orange-600"></i>Tags
+                        </h3>
+                        <input type="text" name="tags" id="tags"
                                value="{{ post.tags|join(', ') if post.tags else '' }}"
-                               class="vintage-input w-full text-sm"
-                               placeholder="technology, business, lifestyle">
-                        <p class="text-xs text-gray-500">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            Separate tags with commas.
+                               class="vintage-input w-full"
+                               placeholder="tag1, tag2, tag3">
+                        <p class="text-xs text-gray-500 mt-2">Separate tags with commas</p>
+                    </div>
+
+                    <!-- AI Assistant -->
+                    <div class="vintage-card p-6 bg-gradient-to-br from-purple-50 to-blue-50">
+                        <h3 class="text-lg font-bold mb-3">
+                            <i class="fas fa-magic mr-2 text-purple-600"></i>AI Assistant
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-3">Need help improving your content?</p>
+                        <button type="button" onclick="openAIModal()"
+                                class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                            <i class="fas fa-wand-magic mr-2"></i>Open AI Writer
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- AI Assistant Modal -->
+        <div id="ai-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center" style="z-index: 10050;">
+            <div class="bg-white rounded-lg shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                <div class="p-6 border-b border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-2xl font-bold">
+                            <i class="fas fa-magic mr-2 text-purple-600"></i>AI Writing Assistant
+                        </h2>
+                        <button type="button" onclick="closeAIModal()" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-2xl"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <div class="mb-6">
+                        <label for="ai-input" class="block text-lg font-semibold mb-3">
+                            <i class="fas fa-lightbulb mr-2 text-yellow-600"></i>Content to Improve
+                        </label>
+                        <textarea id="ai-input" rows="5"
+                                  class="vintage-input w-full"
+                                  placeholder="Enter text to improve or generate new content..."></textarea>
+                        <p class="text-sm text-gray-600 mt-2">
+                            The AI will help you enhance your existing content or generate new ideas
                         </p>
                     </div>
-                </div>
 
-                <!-- SEO Settings -->
-                <div class="vintage-card p-6">
-                    <h3 class="text-lg font-bold mb-4 flapper-accent">
-                        <i class="fas fa-search mr-2"></i>SEO
-                    </h3>
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold mb-2">Writing Style</label>
+                        <select id="ai-style" class="vintage-input w-full">
+                            <option value="professional">Professional</option>
+                            <option value="casual">Casual</option>
+                            <option value="technical">Technical</option>
+                            <option value="creative">Creative</option>
+                            <option value="persuasive">Persuasive</option>
+                        </select>
+                    </div>
 
-                    <div class="space-y-3">
-                        <div>
-                            <label class="block text-sm font-semibold mb-2 text-gray-700">
-                                Meta Description
+                    <div class="flex space-x-3 mb-6">
+                        <button type="button" onclick="generateContent()"
+                                class="vintage-button flex-1">
+                            <i class="fas fa-wand-magic mr-2"></i>Generate Content
+                        </button>
+                        <button type="button" onclick="improveContent()"
+                                class="px-4 py-2 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50">
+                            <i class="fas fa-magic mr-2"></i>Improve Existing
+                        </button>
+                    </div>
+
+                    <!-- AI Output -->
+                    <div id="ai-output-container" class="hidden">
+                        <div class="border-t border-gray-200 pt-6">
+                            <label class="block text-lg font-semibold mb-3">
+                                <i class="fas fa-sparkles mr-2 text-purple-600"></i>Generated Content
                             </label>
-                            <textarea name="meta_description" rows="3"
-                                      class="vintage-input w-full text-sm"
-                                      placeholder="Brief description for search engines...">{{ post.meta_description or '' }}</textarea>
-                        </div>
+                            <div id="ai-output" class="vintage-input w-full p-4 bg-gray-50 min-h-[200px]"></div>
 
-                        <div>
-                            <label class="block text-sm font-semibold mb-2 text-gray-700">
-                                Meta Keywords
-                            </label>
-                            <input type="text" name="meta_keywords"
-                                   value="{{ post.meta_keywords or '' }}"
-                                   class="vintage-input w-full text-sm"
-                                   placeholder="keyword1, keyword2, keyword3">
+                            <div class="mt-4 flex space-x-3">
+                                <button type="button" onclick="insertToEditor()"
+                                        class="vintage-button">
+                                    <i class="fas fa-arrow-left mr-2"></i>Insert to Editor
+                                </button>
+                                <button type="button" onclick="exportToWord()"
+                                        class="px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50">
+                                    <i class="fas fa-file-word mr-2"></i>Export to Word
+                                </button>
+                                <button type="button" onclick="exportToText()"
+                                        class="px-4 py-2 border-2 border-gray-600 text-gray-600 rounded-lg hover:bg-gray-50">
+                                    <i class="fas fa-file-alt mr-2"></i>Export to Text
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Action Buttons -->
-                <div class="space-y-3">
-                    <button type="submit" class="vintage-button w-full text-lg">
-                        <i class="fas fa-save mr-2"></i>Update Post
-                    </button>
-
-                    {% if post.is_published %}
-                    <a href="{{ url_for('blog.view_post', slug=post.slug) }}"
-                       class="block text-center border-2 border-blue-400 text-blue-600 hover:bg-blue-400 hover:text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300">
-                        <i class="fas fa-eye mr-2"></i>View Post
-                    </a>
-                    {% endif %}
-
-                    <a href="{{ url_for('blog.my_posts') }}"
-                       class="block text-center border-2 border-gray-300 text-gray-600 hover:bg-gray-100 px-6 py-3 rounded-lg font-semibold transition-all duration-300">
-                        <i class="fas fa-times mr-2"></i>Cancel
-                    </a>
+                    <!-- Loading State -->
+                    <div id="ai-loading" class="hidden text-center py-8">
+                        <i class="fas fa-spinner fa-spin text-4xl text-purple-600 mb-3"></i>
+                        <p class="text-gray-600">AI is crafting your content...</p>
+                    </div>
                 </div>
             </div>
-        </form>
+        </div>
+
+        <!-- Preview Container -->
+        <div id="preview-container" class="preview-mode">
+            <div class="mb-4 flex justify-between items-center">
+                <h2 class="text-2xl font-bold">
+                    <i class="fas fa-eye mr-2"></i>Preview
+                </h2>
+                <div class="flex space-x-2">
+                    <button type="button" onclick="setPreviewDevice('desktop')"
+                            class="px-3 py-1 border-2 border-gray-300 rounded device-btn active">
+                        <i class="fas fa-desktop"></i> Desktop
+                    </button>
+                    <button type="button" onclick="setPreviewDevice('tablet')"
+                            class="px-3 py-1 border-2 border-gray-300 rounded device-btn">
+                        <i class="fas fa-tablet-alt"></i> Tablet
+                    </button>
+                    <button type="button" onclick="setPreviewDevice('mobile')"
+                            class="px-3 py-1 border-2 border-gray-300 rounded device-btn">
+                        <i class="fas fa-mobile-alt"></i> Mobile
+                    </button>
+                    <button type="button" onclick="togglePreview()"
+                            class="px-3 py-1 bg-gray-600 text-white rounded">
+                        <i class="fas fa-times mr-2"></i>Close
+                    </button>
+                </div>
+            </div>
+            <div class="device-preview desktop p-8" id="preview-frame">
+                <h1 id="preview-title" class="text-4xl font-bold mb-4"></h1>
+                <div id="preview-content" class="prose max-w-none"></div>
+            </div>
+        </div>
     </div>
 </div>
+{% endblock %}
 
-<style>
-    .editor-content {
-        min-height: 400px;
-        font-family: var(--body-font);
-        line-height: 1.6;
-        padding: 1.5rem;
-        border: none;
-        background: white;
-    }
-
-    .editor-content:focus {
-        outline: none;
-    }
-</style>
-
+{% block extra_js %}
+<!-- Quill Rich Text Editor -->
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 <script>
-    // Image preview functionality
-    document.getElementById('featured_image').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        const preview = document.getElementById('image-preview');
-        const img = document.getElementById('preview-img');
+// Initialize Quill editor with existing content
+var quill = new Quill('#editor', {
+    theme: 'snow',
+    modules: {
+        toolbar: [
+            [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            ['blockquote', 'code-block'],
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+            [{ 'indent': '-1'}, { 'indent': '+1' }],
+            [{ 'color': [] }, { 'background': [] }],
+            [{ 'align': [] }],
+            ['link', 'image', 'video'],
+            ['clean']
+        ]
+    },
+    placeholder: 'Start editing your blog post content here...'
+});
 
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                img.src = e.target.result;
-                preview.classList.remove('hidden');
-            };
-            reader.readAsDataURL(file);
+// Load existing content
+var existingContent = {{ post.content|tojson|safe }};
+if (existingContent) {
+    quill.root.innerHTML = existingContent;
+}
+
+// Update hidden input on text change
+quill.on('text-change', function() {
+    document.getElementById('content-hidden').value = quill.root.innerHTML;
+    updateCodeView();
+});
+
+// Initialize hidden input with existing content
+document.getElementById('content-hidden').value = quill.root.innerHTML;
+
+// View switching
+function switchView(view) {
+    const editorView = document.getElementById('editor-view');
+    const codeView = document.getElementById('code-view');
+    const editorTab = document.getElementById('editor-tab');
+    const codeTab = document.getElementById('code-tab');
+
+    if (view === 'editor') {
+        editorView.style.display = 'block';
+        codeView.classList.remove('active');
+        editorTab.classList.add('active', 'bg-yellow-100');
+        codeTab.classList.remove('active', 'bg-yellow-100');
+    } else {
+        editorView.style.display = 'none';
+        codeView.classList.add('active');
+        codeTab.classList.add('active', 'bg-yellow-100');
+        editorTab.classList.remove('active', 'bg-yellow-100');
+        updateCodeView();
+    }
+}
+
+function updateCodeView() {
+    const html = quill.root.innerHTML;
+    document.getElementById('code-content').textContent = html;
+}
+
+function copyCode() {
+    const code = document.getElementById('code-content').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+        alert('HTML code copied to clipboard!');
+    });
+}
+
+// Preview functions
+function togglePreview() {
+    const editor = document.getElementById('editor-container');
+    const preview = document.getElementById('preview-container');
+
+    if (preview.classList.contains('active')) {
+        preview.classList.remove('active');
+        editor.style.display = 'block';
+    } else {
+        updatePreview();
+        preview.classList.add('active');
+        editor.style.display = 'none';
+    }
+}
+
+function updatePreview() {
+    const title = document.getElementById('title').value;
+    const content = quill.root.innerHTML;
+
+    document.getElementById('preview-title').textContent = title || 'Untitled Post';
+    document.getElementById('preview-content').innerHTML = content;
+}
+
+function setPreviewDevice(device) {
+    const frame = document.getElementById('preview-frame');
+    frame.className = `device-preview ${device} p-8`;
+
+    // Update button states
+    document.querySelectorAll('.device-btn').forEach(btn => {
+        btn.classList.remove('active', 'bg-yellow-100', 'border-yellow-600');
+    });
+    event.target.closest('button').classList.add('active', 'bg-yellow-100', 'border-yellow-600');
+}
+
+// Export HTML
+function exportHTML() {
+    const title = document.getElementById('title').value || 'Untitled';
+    const content = quill.root.innerHTML;
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1 { color: #1a1a1a; }
+        img { max-width: 100%; height: auto; }
+    </style>
+</head>
+<body>
+    <h1>${title}</h1>
+    <article>${content}</article>
+</body>
+</html>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${title.replace(/\s+/g, '-').toLowerCase()}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// Image preview
+function previewImage(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('preview-img').src = e.target.result;
+            document.getElementById('image-preview').classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function removeImage() {
+    document.getElementById('featured_image').value = '';
+    document.getElementById('image-preview').classList.add('hidden');
+}
+
+// Active tab styling
+document.querySelectorAll('.view-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('.view-tab').forEach(t => {
+            t.classList.remove('active', 'bg-yellow-100', 'border-b-2', 'border-yellow-600');
+        });
+        this.classList.add('active', 'bg-yellow-100', 'border-b-2', 'border-yellow-600');
+    });
+});
+
+// Initialize first tab
+document.getElementById('editor-tab').classList.add('bg-yellow-100', 'border-b-2', 'border-yellow-600');
+
+// Publish scheduling toggle
+function toggleSchedule() {
+    const scheduleRadio = document.querySelector('input[name="publish_type"][value="scheduled"]');
+    const dateContainer = document.getElementById('publish-date-container');
+
+    if (scheduleRadio.checked) {
+        dateContainer.classList.remove('hidden');
+    } else {
+        dateContainer.classList.add('hidden');
+    }
+}
+
+// AI Modal Functions
+function openAIModal() {
+    const modal = document.getElementById('ai-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    // Pre-fill with current editor content
+    const currentContent = quill.getText();
+    if (currentContent.trim()) {
+        document.getElementById('ai-input').value = currentContent;
+    }
+}
+
+function closeAIModal() {
+    const modal = document.getElementById('ai-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+
+    // Reset form
+    document.getElementById('ai-input').value = '';
+    document.getElementById('ai-output').innerHTML = '';
+    document.getElementById('ai-output-container').classList.add('hidden');
+}
+
+function generateContent() {
+    const input = document.getElementById('ai-input').value;
+    const style = document.getElementById('ai-style').value;
+
+    if (!input.trim()) {
+        alert('Please enter some text first');
+        return;
+    }
+
+    // Show loading
+    document.getElementById('ai-loading').classList.remove('hidden');
+    document.getElementById('ai-output-container').classList.add('hidden');
+
+    // Call AI service
+    fetch('/blog/ai-generate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            input: input,
+            style: style,
+            action: 'generate'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('ai-loading').classList.add('hidden');
+
+        if (data.success) {
+            document.getElementById('ai-output').innerHTML = data.content;
+            document.getElementById('ai-output-container').classList.remove('hidden');
         } else {
-            preview.classList.add('hidden');
+            alert('Error generating content: ' + (data.error || 'Unknown error'));
         }
+    })
+    .catch(error => {
+        document.getElementById('ai-loading').classList.add('hidden');
+        alert('Error: ' + error.message);
+    });
+}
+
+function improveContent() {
+    const input = document.getElementById('ai-input').value;
+    const style = document.getElementById('ai-style').value;
+
+    if (!input.trim()) {
+        // Use current editor content
+        const currentContent = quill.getText();
+        if (!currentContent.trim()) {
+            alert('Please enter content to improve');
+            return;
+        }
+        document.getElementById('ai-input').value = currentContent;
+    }
+
+    // Show loading
+    document.getElementById('ai-loading').classList.remove('hidden');
+    document.getElementById('ai-output-container').classList.add('hidden');
+
+    // Call AI service
+    fetch('/blog/ai-generate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            input: document.getElementById('ai-input').value,
+            style: style,
+            action: 'improve'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('ai-loading').classList.add('hidden');
+
+        if (data.success) {
+            document.getElementById('ai-output').innerHTML = data.content;
+            document.getElementById('ai-output-container').classList.remove('hidden');
+        } else {
+            alert('Error improving content: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        document.getElementById('ai-loading').classList.add('hidden');
+        alert('Error: ' + error.message);
+    });
+}
+
+function insertToEditor() {
+    const content = document.getElementById('ai-output').innerHTML;
+
+    // Insert at current cursor position or append
+    const range = quill.getSelection();
+    if (range) {
+        quill.clipboard.dangerouslyPasteHTML(range.index, content);
+    } else {
+        quill.clipboard.dangerouslyPasteHTML(quill.getLength(), content);
+    }
+
+    // Close modal
+    closeAIModal();
+
+    // Show success message
+    alert('Content inserted successfully!');
+}
+
+function exportToWord() {
+    const content = document.getElementById('ai-output').innerHTML;
+    const title = document.getElementById('title').value || 'AI Generated Content';
+
+    const html = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head><meta charset='utf-8'><title>${title}</title></head>
+        <body>${content}</body>
+        </html>
+    `;
+
+    const blob = new Blob(['\ufeff', html], {
+        type: 'application/msword'
     });
 
-    // Remove new image
-    document.getElementById('remove-image').addEventListener('click', function() {
-        document.getElementById('featured_image').value = '';
-        document.getElementById('image-preview').classList.add('hidden');
-    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${title.replace(/\s+/g, '-').toLowerCase()}.doc`;
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
+function exportToText() {
+    const content = document.getElementById('ai-output').innerText;
+    const title = document.getElementById('title').value || 'AI Generated Content';
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${title.replace(/\s+/g, '-').toLowerCase()}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
+// Close modal when clicking outside
+document.getElementById('ai-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeAIModal();
+    }
+});
 </script>
 {% endblock %}

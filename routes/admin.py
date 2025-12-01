@@ -3,12 +3,15 @@ Admin routes for Opinian platform
 Handles user management, permissions, and system administration
 """
 
+import logging
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.security import generate_password_hash
 from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from app import get_db_connection, login_required, role_required, log_user_activity
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
 

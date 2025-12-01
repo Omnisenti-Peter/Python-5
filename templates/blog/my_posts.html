@@ -86,7 +86,7 @@
 
                         <!-- Excerpt -->
                         {% if post.excerpt %}
-                        <p class="text-gray-600 mb-3">{{ post.excerpt[:150] }}{% if post.excerpt|length > 150 %}...{% endif %}</p>
+                        <p class="text-gray-600 mb-3">{{ post.excerpt|striptags|truncate(150) }}</p>
                         {% endif %}
 
                         <!-- Meta Information -->

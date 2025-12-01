@@ -5,12 +5,15 @@ Handles static page creation and management
 
 import os
 import re
+import logging
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from app import get_db_connection, login_required, role_required, allowed_file, log_user_activity
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint('pages', __name__, url_prefix='/pages')
 
@@ -396,10 +399,12 @@ def user_profile(username):
             
             # Get user's published blog posts
             cursor.execute("""
-                SELECT id, title, slug, published_at, excerpt, view_count
+                SELECT id, title, slug, published_at, excerpt, view_count,
+                       featured_image_url, tags
                 FROM blog_posts
                 WHERE author_id = %s AND is_published = TRUE
                 ORDER BY published_at DESC
+                LIMIT 9
             """, (user['id'],))
             blog_posts = cursor.fetchall()
             
@@ -412,6 +417,6 @@ def user_profile(username):
             return redirect(url_for('index'))
             
     except Exception as e:
-        flash('Error loading profile', 'danger')
-        logger.error(f"Error loading user profile: {e}")
+        flash(f'Error loading profile: {str(e)}', 'danger')
+        logger.error(f"Error loading user profile for {username}: {e}", exc_info=True)
         return redirect(url_for('index'))

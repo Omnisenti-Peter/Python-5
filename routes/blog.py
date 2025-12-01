@@ -34,8 +34,8 @@ def blog_index():
                 SELECT bp.*, u.username, u.first_name, u.last_name, g.name as group_name
                 FROM blog_posts bp
                 JOIN users u ON bp.author_id = u.id
-                JOIN groups g ON bp.group_id = g.id
-                WHERE bp.is_published = TRUE AND g.is_active = TRUE
+                LEFT JOIN groups g ON bp.group_id = g.id
+                WHERE bp.is_published = TRUE AND (g.is_active = TRUE OR bp.group_id IS NULL)
                 ORDER BY bp.published_at DESC
             """)
             blog_posts = cursor.fetchall()
@@ -65,7 +65,7 @@ def view_post(slug):
                 SELECT bp.*, u.username, u.first_name, u.last_name, g.name as group_name
                 FROM blog_posts bp
                 JOIN users u ON bp.author_id = u.id
-                JOIN groups g ON bp.group_id = g.id
+                LEFT JOIN groups g ON bp.group_id = g.id
                 WHERE bp.slug = %s AND bp.is_published = TRUE
             """, (slug,))
             
@@ -112,7 +112,27 @@ def create_post():
         tags = request.form.get('tags', '')
         meta_description = request.form.get('meta_description')
         meta_keywords = request.form.get('meta_keywords')
-        is_published = request.form.get('is_published') == 'on'
+
+        # Check action button (publish or draft)
+        action = request.form.get('action', 'draft')
+        is_published = (action == 'publish')
+
+        # Handle publish scheduling
+        publish_type = request.form.get('publish_type', 'immediate')
+        scheduled_date = request.form.get('publish_date')
+
+        # Determine published_at timestamp
+        published_at = None
+        if is_published:
+            if publish_type == 'scheduled' and scheduled_date:
+                try:
+                    # Parse the scheduled date
+                    from dateutil import parser
+                    published_at = parser.parse(scheduled_date)
+                except:
+                    published_at = datetime.utcnow()
+            else:
+                published_at = datetime.utcnow()
         
         # Handle file upload
         featured_image_url = None
@@ -147,15 +167,15 @@ def create_post():
                 
                 # Insert blog post
                 cursor.execute("""
-                    INSERT INTO blog_posts 
-                    (title, slug, content, excerpt, author_id, group_id, featured_image_url, 
+                    INSERT INTO blog_posts
+                    (title, slug, content, excerpt, author_id, group_id, featured_image_url,
                      tags, meta_description, meta_keywords, is_published, published_at)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                 """, (
                     title, slug, content, excerpt, session['user_id'], session.get('group_id'),
-                    featured_image_url, tags.split(','), meta_description, meta_keywords,
-                    is_published, datetime.utcnow() if is_published else None
+                    featured_image_url, tags.split(',') if tags else [], meta_description, meta_keywords,
+                    is_published, published_at
                 ))
                 
                 post_id = cursor.fetchone()[0]
@@ -211,7 +231,28 @@ def edit_post(post_id):
                 tags = request.form.get('tags', '')
                 meta_description = request.form.get('meta_description')
                 meta_keywords = request.form.get('meta_keywords')
-                is_published = request.form.get('is_published') == 'on'
+
+                # Check action button (publish or draft)
+                action = request.form.get('action', 'draft')
+                is_published = (action == 'publish')
+
+                # Handle publish scheduling
+                publish_type = request.form.get('publish_type', 'immediate')
+                scheduled_date = request.form.get('publish_date')
+
+                # Determine published_at timestamp
+                published_at = post['published_at']  # Keep existing if already set
+                if is_published:
+                    if publish_type == 'scheduled' and scheduled_date:
+                        try:
+                            from dateutil import parser
+                            published_at = parser.parse(scheduled_date)
+                        except:
+                            published_at = datetime.utcnow()
+                    elif not published_at:  # Only set if not already published
+                        published_at = datetime.utcnow()
+                else:
+                    published_at = None  # Clear if saving as draft
                 
                 # Handle file upload
                 featured_image_url = post['featured_image_url']
@@ -243,16 +284,16 @@ def edit_post(post_id):
                 
                 # Update blog post
                 cursor.execute("""
-                    UPDATE blog_posts 
+                    UPDATE blog_posts
                     SET title = %s, slug = %s, content = %s, excerpt = %s,
                         featured_image_url = %s, tags = %s, meta_description = %s,
                         meta_keywords = %s, is_published = %s, published_at = %s,
                         updated_at = %s
                     WHERE id = %s
                 """, (
-                    title, slug, content, excerpt, featured_image_url, tags.split(','),
-                    meta_description, meta_keywords, is_published,
-                    datetime.utcnow() if is_published and not post['published_at'] else post['published_at'],
+                    title, slug, content, excerpt, featured_image_url,
+                    tags.split(',') if tags else [],
+                    meta_description, meta_keywords, is_published, published_at,
                     datetime.utcnow(), post_id
                 ))
                 
@@ -342,13 +383,23 @@ def my_posts():
             
             if user_role in ['SuperAdmin', 'Admin']:
                 # Admins can see all posts in their group
-                cursor.execute("""
-                    SELECT bp.*, u.username
-                    FROM blog_posts bp
-                    JOIN users u ON bp.author_id = u.id
-                    WHERE bp.group_id = %s
-                    ORDER BY bp.created_at DESC
-                """, (session.get('group_id'),))
+                group_id = session.get('group_id')
+                if group_id is not None:
+                    cursor.execute("""
+                        SELECT bp.*, u.username
+                        FROM blog_posts bp
+                        JOIN users u ON bp.author_id = u.id
+                        WHERE bp.group_id = %s
+                        ORDER BY bp.created_at DESC
+                    """, (group_id,))
+                else:
+                    cursor.execute("""
+                        SELECT bp.*, u.username
+                        FROM blog_posts bp
+                        JOIN users u ON bp.author_id = u.id
+                        WHERE bp.group_id IS NULL
+                        ORDER BY bp.created_at DESC
+                    """)
             else:
                 # Regular users can only see their own posts
                 cursor.execute("""
@@ -376,6 +427,53 @@ def my_posts():
 def ai_assistant():
     """AI writing assistant page"""
     return render_template('blog/ai_assistant.html')
+
+@bp.route('/ai-generate', methods=['POST'])
+@login_required
+def ai_generate():
+    """Generate or improve content using AI for the embedded modal"""
+    try:
+        data = request.get_json()
+        input_text = data.get('input')
+        style = data.get('style', 'professional')
+        action = data.get('action', 'generate')
+
+        if not input_text:
+            return jsonify({
+                'success': False,
+                'error': 'Input text is required'
+            }), 400
+
+        # Build prompt based on action and style
+        if action == 'improve':
+            prompt = f"Improve the following content in a {style} style:\n\n{input_text}"
+        else:
+            prompt = f"Write a blog post in a {style} style based on this idea:\n\n{input_text}"
+
+        # Use AI service to generate content
+        result = ai_service.generate_blog_content(prompt, 'blog_post')
+
+        # Log activity
+        log_user_activity(
+            session['user_id'],
+            f'ai_{action}_content',
+            'blog_content',
+            None,
+            {'style': style, 'action': action}
+        )
+
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify(result), 500
+
+    except Exception as e:
+        logger.error(f"Error in AI generate: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to generate content',
+            'message': str(e)
+        }), 500
 
 @bp.route('/generate-content', methods=['POST'])
 @login_required

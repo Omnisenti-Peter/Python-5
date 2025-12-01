@@ -127,8 +127,8 @@ def index():
                 SELECT bp.*, u.username, u.first_name, u.last_name, g.name as group_name
                 FROM blog_posts bp
                 JOIN users u ON bp.author_id = u.id
-                JOIN groups g ON bp.group_id = g.id
-                WHERE bp.is_published = TRUE AND g.is_active = TRUE
+                LEFT JOIN groups g ON bp.group_id = g.id
+                WHERE bp.is_published = TRUE AND (g.is_active = TRUE OR bp.group_id IS NULL)
                 ORDER BY bp.published_at DESC
                 LIMIT 10
             """)
@@ -332,6 +332,14 @@ def dashboard():
     except Exception as e:
         logger.error(f"Dashboard error: {e}")
         return render_template('dashboard.html')
+
+# Route to serve uploaded files
+from flask import send_from_directory
+
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    """Serve uploaded files"""
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 # Import additional route modules
 from routes import blog, pages, admin, themes, api
