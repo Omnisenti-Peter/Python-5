@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Create Group - Admin{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="container mx-auto px-4 max-w-4xl">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold mb-2 flapper-accent">
+                <i class="fas fa-plus-circle mr-3"></i>Create New Group
+            </h1>
+            <p class="text-xl text-gray-600">Set up a new organization</p>
+        </div>
+
+        <!-- Form -->
+        <div class="vintage-card p-8">
+            <form method="POST" action="{{ url_for('admin.create_group') }}">
+                <!-- Group Name -->
+                <div class="mb-6">
+                    <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Group Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text"
+                           id="name"
+                           name="name"
+                           required
+                           class="vintage-input w-full"
+                           placeholder="Enter group name">
+                    <p class="text-xs text-gray-500 mt-1">This will be the organization's display name</p>
+                </div>
+
+                <!-- Description -->
+                <div class="mb-6">
+                    <label for="description" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Description
+                    </label>
+                    <textarea id="description"
+                              name="description"
+                              rows="4"
+                              class="vintage-input w-full"
+                              placeholder="Enter a brief description of this group"></textarea>
+                    <p class="text-xs text-gray-500 mt-1">Optional description of the group's purpose</p>
+                </div>
+
+                <!-- Admin User -->
+                <div class="mb-6">
+                    <label for="admin_user_id" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Group Administrator
+                    </label>
+                    <select id="admin_user_id" name="admin_user_id" class="vintage-input w-full">
+                        <option value="">Select an administrator (optional)</option>
+                        {% for admin in available_admins %}
+                        <option value="{{ admin.id }}">
+                            {{ admin.username }} - {{ admin.first_name }} {{ admin.last_name }}
+                            {% if admin.current_group %}(Already in: {{ admin.current_group }}){% else %}(Available){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Assign an Admin user to manage this group. Users already assigned to another group will be reassigned.
+                    </p>
+                </div>
+
+                <!-- Info Box -->
+                <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-info-circle text-blue-400 text-xl"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-blue-700">
+                                <strong>Note:</strong> After creating the group, you can configure additional settings
+                                like contact page content, about page content, and theme from the edit page.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex gap-4">
+                    <button type="submit" class="vintage-button">
+                        <i class="fas fa-save mr-2"></i>Create Group
+                    </button>
+                    <a href="{{ url_for('admin.manage_groups') }}"
+                       class="px-6 py-3 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Help Section -->
+        <div class="vintage-card p-6 mt-8">
+            <h3 class="text-xl font-bold mb-4 flapper-accent">
+                <i class="fas fa-question-circle mr-2"></i>What is a Group?
+            </h3>
+            <div class="space-y-3 text-gray-700">
+                <p>
+                    <i class="fas fa-check text-green-600 mr-2"></i>
+                    Groups represent separate organizations within the platform
+                </p>
+                <p>
+                    <i class="fas fa-check text-green-600 mr-2"></i>
+                    Each group has its own users, content, and settings
+                </p>
+                <p>
+                    <i class="fas fa-check text-green-600 mr-2"></i>
+                    Groups provide multi-tenant isolation for different organizations
+                </p>
+                <p>
+                    <i class="fas fa-check text-green-600 mr-2"></i>
+                    A Group Administrator manages users and content within their group
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

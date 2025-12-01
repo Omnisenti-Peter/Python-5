@@ -10,11 +10,23 @@
             <h1 class="text-5xl font-bold mb-4 flapper-accent">
                 <i class="fas fa-envelope mr-3"></i>Contact Us
             </h1>
+            {% if group_name %}
+            <p class="text-lg text-yellow-600 mb-2">{{ group_name }}</p>
+            {% endif %}
             <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-                We'd love to hear from you. Whether you have a question about our platform, 
+                We'd love to hear from you. Whether you have a question about our platform,
                 need assistance, or just want to share your thoughts.
             </p>
         </div>
+
+        <!-- Custom Content -->
+        {% if content %}
+        <div class="vintage-card p-8 mb-12">
+            <div class="prose max-w-none">
+                {{ content|safe }}
+            </div>
+        </div>
+        {% endif %}
         
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <!-- Contact Form -->

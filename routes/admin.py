@@ -150,19 +150,54 @@ def create_user():
         first_name = request.form.get('first_name')
         last_name = request.form.get('last_name')
         role_id = request.form.get('role_id')
-        
+
+        # For SuperAdmin, allow selecting group; for Admin, use their group
+        if session['user_role'] == 'SuperAdmin':
+            group_id = request.form.get('group_id')
+            group_id = int(group_id) if group_id else None
+        else:
+            group_id = session.get('group_id')
+
         try:
             conn = get_db_connection()
             if conn:
-                cursor = conn.cursor()
-                
+                cursor = conn.cursor(cursor_factory=RealDictCursor)
+
                 # Check if user already exists
-                cursor.execute("SELECT id FROM users WHERE username = %s OR email = %s", 
+                cursor.execute("SELECT id FROM users WHERE username = %s OR email = %s",
                              (username, email))
                 if cursor.fetchone():
                     flash('Username or email already exists.', 'danger')
+                    cursor.close()
+                    conn.close()
                     return redirect(url_for('admin.create_user'))
-                
+
+                # Get the selected role to validate permissions
+                cursor.execute("SELECT name FROM roles WHERE id = %s", (role_id,))
+                role_result = cursor.fetchone()
+
+                if not role_result:
+                    flash('Invalid role selected.', 'danger')
+                    cursor.close()
+                    conn.close()
+                    return redirect(url_for('admin.create_user'))
+
+                role_name = role_result['name']
+
+                # Validate: Admin can only create User and SuperUser roles within their group
+                if session['user_role'] == 'Admin':
+                    if role_name not in ['User', 'SuperUser']:
+                        flash('You can only create User and SuperUser roles.', 'danger')
+                        cursor.close()
+                        conn.close()
+                        return redirect(url_for('admin.create_user'))
+
+                    if not group_id:
+                        flash('Admin users must be assigned to a group.', 'danger')
+                        cursor.close()
+                        conn.close()
+                        return redirect(url_for('admin.create_user'))
+
                 # Create user
                 password_hash = generate_password_hash(password)
                 cursor.execute("""
@@ -170,45 +205,64 @@ def create_user():
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                 """, (
-                    username, email, password_hash, first_name, last_name, 
-                    role_id, session.get('group_id')
+                    username, email, password_hash, first_name, last_name,
+                    role_id, group_id
                 ))
-                
+
                 user_id = cursor.fetchone()[0]
                 conn.commit()
                 cursor.close()
                 conn.close()
-                
+
                 # Log activity
                 log_user_activity(session['user_id'], 'create_user', 'user', user_id)
-                
+
                 flash('User created successfully!', 'success')
                 return redirect(url_for('admin.manage_users'))
-                
+
         except Exception as e:
             flash('Error creating user', 'danger')
             logger.error(f"Error creating user: {e}")
-    
+
     try:
         conn = get_db_connection()
         if conn:
             cursor = conn.cursor(cursor_factory=RealDictCursor)
-            
-            # Get available roles
-            cursor.execute("SELECT id, name, description FROM roles ORDER BY id")
+
+            # Get available roles based on user's role
+            if session['user_role'] == 'SuperAdmin':
+                cursor.execute("SELECT id, name, description FROM roles ORDER BY id")
+            else:
+                # Admin can only create User and SuperUser roles
+                cursor.execute("""
+                    SELECT id, name, description FROM roles
+                    WHERE name IN ('User', 'SuperUser')
+                    ORDER BY id
+                """)
             roles = cursor.fetchall()
-            
+
+            # Get available groups (only for SuperAdmin)
+            groups = []
+            if session['user_role'] == 'SuperAdmin':
+                cursor.execute("""
+                    SELECT id, name FROM groups
+                    WHERE is_active = TRUE
+                    ORDER BY name
+                """)
+                groups = cursor.fetchall()
+
             cursor.close()
             conn.close()
-            
-            return render_template('admin/create_user.html', roles=roles)
+
+            return render_template('admin/create_user.html', roles=roles, groups=groups)
         else:
             flash('Database connection error', 'danger')
-            return render_template('admin/create_user.html', roles=[])
-            
+            return render_template('admin/create_user.html', roles=[], groups=[])
+
     except Exception as e:
         flash('Error loading roles', 'danger')
-        return render_template('admin/create_user.html', roles=[])
+        logger.error(f"Error loading create user form: {e}")
+        return render_template('admin/create_user.html', roles=[], groups=[])
 
 @bp.route('/users/edit/<int:user_id>', methods=['GET', 'POST'])
 @login_required
@@ -245,31 +299,48 @@ def edit_user(user_id):
                 role_id = request.form.get('role_id')
                 is_active = request.form.get('is_active') == 'on'
                 is_banned = request.form.get('is_banned') == 'on'
-                
+
+                # For SuperAdmin, allow changing group; for Admin, keep their group
+                if session['user_role'] == 'SuperAdmin':
+                    group_id = request.form.get('group_id')
+                    group_id = int(group_id) if group_id else None
+                else:
+                    group_id = user['group_id']  # Keep existing group for Admin
+
                 # Update user
                 cursor.execute("""
-                    UPDATE users 
-                    SET first_name = %s, last_name = %s, role_id = %s, 
+                    UPDATE users
+                    SET first_name = %s, last_name = %s, role_id = %s, group_id = %s,
                         is_active = %s, is_banned = %s, updated_at = %s
                     WHERE id = %s
-                """, (first_name, last_name, role_id, is_active, is_banned, datetime.utcnow(), user_id))
-                
+                """, (first_name, last_name, role_id, group_id, is_active, is_banned, datetime.utcnow(), user_id))
+
                 conn.commit()
-                
+
                 # Log activity
                 log_user_activity(session['user_id'], 'edit_user', 'user', user_id)
-                
+
                 flash('User updated successfully!', 'success')
                 return redirect(url_for('admin.manage_users'))
             
             # Get available roles
             cursor.execute("SELECT id, name, description FROM roles ORDER BY id")
             roles = cursor.fetchall()
-            
+
+            # Get available groups (only for SuperAdmin)
+            groups = []
+            if session['user_role'] == 'SuperAdmin':
+                cursor.execute("""
+                    SELECT id, name FROM groups
+                    WHERE is_active = TRUE
+                    ORDER BY name
+                """)
+                groups = cursor.fetchall()
+
             cursor.close()
             conn.close()
-            
-            return render_template('admin/edit_user.html', user=user, roles=roles)
+
+            return render_template('admin/edit_user.html', user=user, roles=roles, groups=groups)
         else:
             flash('Database connection error', 'danger')
             return redirect(url_for('admin.manage_users'))
@@ -331,27 +402,345 @@ def manage_groups():
         conn = get_db_connection()
         if conn:
             cursor = conn.cursor(cursor_factory=RealDictCursor)
-            
+
             cursor.execute("""
-                SELECT g.*, u.username as admin_username, t.name as theme_name
+                SELECT g.*, u.username as admin_username, u.email as admin_email, t.name as theme_name,
+                       (SELECT COUNT(*) FROM users WHERE group_id = g.id) as user_count,
+                       (SELECT COUNT(*) FROM blog_posts WHERE group_id = g.id) as post_count
                 FROM groups g
                 LEFT JOIN users u ON g.admin_user_id = u.id
                 LEFT JOIN themes t ON g.theme_id = t.id
                 ORDER BY g.created_at DESC
             """)
             groups = cursor.fetchall()
-            
+
             cursor.close()
             conn.close()
-            
+
             return render_template('admin/groups.html', groups=groups)
         else:
             flash('Database connection error', 'danger')
             return render_template('admin/groups.html', groups=[])
-            
+
     except Exception as e:
         flash('Error loading groups', 'danger')
+        logger.error(f"Error loading groups: {e}")
         return render_template('admin/groups.html', groups=[])
+
+@bp.route('/groups/create', methods=['GET', 'POST'])
+@login_required
+@role_required(['SuperAdmin'])
+def create_group():
+    """Create a new group"""
+    if request.method == 'POST':
+        name = request.form.get('name')
+        description = request.form.get('description')
+        admin_user_id = request.form.get('admin_user_id')
+
+        try:
+            conn = get_db_connection()
+            if conn:
+                cursor = conn.cursor()
+
+                # Check if group name already exists
+                cursor.execute("SELECT id FROM groups WHERE name = %s", (name,))
+                if cursor.fetchone():
+                    flash('Group name already exists.', 'danger')
+                    cursor.close()
+                    conn.close()
+                    return redirect(url_for('admin.create_group'))
+
+                # Create group
+                cursor.execute("""
+                    INSERT INTO groups (name, description, admin_user_id)
+                    VALUES (%s, %s, %s)
+                    RETURNING id
+                """, (name, description, admin_user_id if admin_user_id else None))
+
+                group_id = cursor.fetchone()[0]
+
+                # Update admin user's group_id
+                if admin_user_id:
+                    cursor.execute("""
+                        UPDATE users SET group_id = %s WHERE id = %s
+                    """, (group_id, admin_user_id))
+
+                conn.commit()
+                cursor.close()
+                conn.close()
+
+                # Log activity
+                log_user_activity(session['user_id'], 'create_group', 'group', group_id)
+
+                flash('Group created successfully!', 'success')
+                return redirect(url_for('admin.manage_groups'))
+
+        except Exception as e:
+            flash('Error creating group', 'danger')
+            logger.error(f"Error creating group: {e}")
+
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # Get all admin users (allow reassignment)
+            cursor.execute("""
+                SELECT u.id, u.username, u.email, u.first_name, u.last_name,
+                       g.name as current_group
+                FROM users u
+                JOIN roles r ON u.role_id = r.id
+                LEFT JOIN groups g ON u.group_id = g.id
+                WHERE r.name IN ('Admin', 'SuperAdmin')
+                ORDER BY u.username
+            """)
+            available_admins = cursor.fetchall()
+
+            cursor.close()
+            conn.close()
+
+            return render_template('admin/create_group.html', available_admins=available_admins)
+        else:
+            flash('Database connection error', 'danger')
+            return render_template('admin/create_group.html', available_admins=[])
+
+    except Exception as e:
+        flash('Error loading form', 'danger')
+        logger.error(f"Error loading create group form: {e}")
+        return render_template('admin/create_group.html', available_admins=[])
+
+@bp.route('/groups/edit/<int:group_id>', methods=['GET', 'POST'])
+@login_required
+@role_required(['SuperAdmin'])
+def edit_group(group_id):
+    """Edit group details"""
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # Get group
+            cursor.execute("""
+                SELECT g.*, u.username as admin_username
+                FROM groups g
+                LEFT JOIN users u ON g.admin_user_id = u.id
+                WHERE g.id = %s
+            """, (group_id,))
+            group = cursor.fetchone()
+
+            if not group:
+                flash('Group not found', 'danger')
+                cursor.close()
+                conn.close()
+                return redirect(url_for('admin.manage_groups'))
+
+            if request.method == 'POST':
+                name = request.form.get('name')
+                description = request.form.get('description')
+                admin_user_id = request.form.get('admin_user_id')
+                contact_page_content = request.form.get('contact_page_content')
+                about_page_content = request.form.get('about_page_content')
+                is_active = request.form.get('is_active') == 'on'
+
+                # Check if name is taken by another group
+                cursor.execute("SELECT id FROM groups WHERE name = %s AND id != %s", (name, group_id))
+                if cursor.fetchone():
+                    flash('Group name already exists.', 'danger')
+                else:
+                    # Update group
+                    cursor.execute("""
+                        UPDATE groups
+                        SET name = %s, description = %s, admin_user_id = %s,
+                            contact_page_content = %s, about_page_content = %s,
+                            is_active = %s, updated_at = %s
+                        WHERE id = %s
+                    """, (name, description, admin_user_id if admin_user_id else None,
+                          contact_page_content, about_page_content, is_active,
+                          datetime.utcnow(), group_id))
+
+                    # Update admin user's group_id
+                    if admin_user_id:
+                        cursor.execute("UPDATE users SET group_id = %s WHERE id = %s", (group_id, admin_user_id))
+
+                    conn.commit()
+
+                    # Log activity
+                    log_user_activity(session['user_id'], 'edit_group', 'group', group_id)
+
+                    flash('Group updated successfully!', 'success')
+                    return redirect(url_for('admin.manage_groups'))
+
+            # Get available admin users
+            cursor.execute("""
+                SELECT u.id, u.username, u.email, u.first_name, u.last_name
+                FROM users u
+                JOIN roles r ON u.role_id = r.id
+                WHERE r.name IN ('Admin', 'SuperAdmin')
+                ORDER BY u.username
+            """)
+            available_admins = cursor.fetchall()
+
+            # Get themes
+            cursor.execute("SELECT id, name FROM themes ORDER BY name")
+            themes = cursor.fetchall()
+
+            cursor.close()
+            conn.close()
+
+            return render_template('admin/edit_group.html', group=group,
+                                 available_admins=available_admins, themes=themes)
+        else:
+            flash('Database connection error', 'danger')
+            return redirect(url_for('admin.manage_groups'))
+
+    except Exception as e:
+        flash('Error loading group', 'danger')
+        logger.error(f"Error editing group: {e}")
+        return redirect(url_for('admin.manage_groups'))
+
+@bp.route('/groups/view/<int:group_id>')
+@login_required
+@role_required(['SuperAdmin'])
+def view_group(group_id):
+    """View group details"""
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # Get group details
+            cursor.execute("""
+                SELECT g.*, u.username as admin_username, u.email as admin_email,
+                       u.first_name as admin_first_name, u.last_name as admin_last_name,
+                       t.name as theme_name
+                FROM groups g
+                LEFT JOIN users u ON g.admin_user_id = u.id
+                LEFT JOIN themes t ON g.theme_id = t.id
+                WHERE g.id = %s
+            """, (group_id,))
+            group = cursor.fetchone()
+
+            if not group:
+                flash('Group not found', 'danger')
+                return redirect(url_for('admin.manage_groups'))
+
+            # Get group statistics
+            cursor.execute("""
+                SELECT
+                    (SELECT COUNT(*) FROM users WHERE group_id = %s) as total_users,
+                    (SELECT COUNT(*) FROM blog_posts WHERE group_id = %s) as total_posts,
+                    (SELECT COUNT(*) FROM pages WHERE group_id = %s) as total_pages,
+                    (SELECT COUNT(*) FROM users WHERE group_id = %s AND is_active = TRUE) as active_users
+            """, (group_id, group_id, group_id, group_id))
+            stats = cursor.fetchone()
+
+            # Get group users
+            cursor.execute("""
+                SELECT u.*, r.name as role_name
+                FROM users u
+                JOIN roles r ON u.role_id = r.id
+                WHERE u.group_id = %s
+                ORDER BY u.created_at DESC
+                LIMIT 10
+            """, (group_id,))
+            users = cursor.fetchall()
+
+            # Get recent blog posts
+            cursor.execute("""
+                SELECT bp.*, u.username as author_username
+                FROM blog_posts bp
+                JOIN users u ON bp.author_id = u.id
+                WHERE bp.group_id = %s
+                ORDER BY bp.created_at DESC
+                LIMIT 10
+            """, (group_id,))
+            posts = cursor.fetchall()
+
+            cursor.close()
+            conn.close()
+
+            return render_template('admin/view_group.html', group=group, stats=stats,
+                                 users=users, posts=posts)
+        else:
+            flash('Database connection error', 'danger')
+            return redirect(url_for('admin.manage_groups'))
+
+    except Exception as e:
+        flash('Error loading group', 'danger')
+        logger.error(f"Error viewing group: {e}")
+        return redirect(url_for('admin.manage_groups'))
+
+@bp.route('/groups/delete/<int:group_id>', methods=['POST'])
+@login_required
+@role_required(['SuperAdmin'])
+def delete_group(group_id):
+    """Delete a group (soft delete by setting is_active to false)"""
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor()
+
+            # Check if group exists
+            cursor.execute("SELECT id FROM groups WHERE id = %s", (group_id,))
+            if not cursor.fetchone():
+                return jsonify({'success': False, 'message': 'Group not found'}), 404
+
+            # Soft delete - set is_active to false
+            cursor.execute("UPDATE groups SET is_active = FALSE, updated_at = %s WHERE id = %s",
+                         (datetime.utcnow(), group_id))
+            conn.commit()
+
+            cursor.close()
+            conn.close()
+
+            # Log activity
+            log_user_activity(session['user_id'], 'delete_group', 'group', group_id)
+
+            return jsonify({'success': True, 'message': 'Group deactivated successfully'})
+
+    except Exception as e:
+        logger.error(f"Error deleting group: {e}")
+        return jsonify({'success': False, 'message': 'Error deleting group'}), 500
+
+@bp.route('/groups/toggle/<int:group_id>', methods=['POST'])
+@login_required
+@role_required(['SuperAdmin'])
+def toggle_group(group_id):
+    """Toggle group active status"""
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # Get current status
+            cursor.execute("SELECT is_active FROM groups WHERE id = %s", (group_id,))
+            result = cursor.fetchone()
+
+            if not result:
+                return jsonify({'success': False, 'message': 'Group not found'}), 404
+
+            # Toggle status
+            new_status = not result['is_active']
+            cursor.execute("UPDATE groups SET is_active = %s, updated_at = %s WHERE id = %s",
+                         (new_status, datetime.utcnow(), group_id))
+            conn.commit()
+
+            cursor.close()
+            conn.close()
+
+            # Log activity
+            action = 'activate_group' if new_status else 'deactivate_group'
+            log_user_activity(session['user_id'], action, 'group', group_id)
+
+            return jsonify({
+                'success': True,
+                'message': f'Group {"activated" if new_status else "deactivated"} successfully',
+                'is_active': new_status
+            })
+
+    except Exception as e:
+        logger.error(f"Error toggling group status: {e}")
+        return jsonify({'success': False, 'message': 'Error updating group status'}), 500
 
 @bp.route('/activity-logs')
 @login_required

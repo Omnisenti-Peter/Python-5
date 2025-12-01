@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}About Us - Opinian{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-16">
+    <div class="container mx-auto px-4 max-w-6xl">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-bold mb-4 flapper-accent">
+                <i class="fas fa-info-circle mr-3"></i>About Us
+            </h1>
+            {% if group_name %}
+            <p class="text-lg text-yellow-600 mb-2">{{ group_name }}</p>
+            {% endif %}
+            <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+                Discover our story, mission, and the team behind the platform
+            </p>
+        </div>
+
+        <!-- Custom Content -->
+        {% if content %}
+        <div class="vintage-card p-8 mb-12">
+            <div class="prose prose-lg max-w-none">
+                {{ content|safe }}
+            </div>
+        </div>
+        {% else %}
+        <!-- Default About Content -->
+        <div class="space-y-12">
+            <!-- Our Story -->
+            <div class="vintage-card p-8">
+                <h2 class="text-3xl font-bold mb-6 flapper-accent">
+                    <i class="fas fa-book-open mr-2"></i>Our Story
+                </h2>
+                <div class="prose prose-lg max-w-none">
+                    <p class="text-gray-700 leading-relaxed mb-4">
+                        Opinian was born from a simple idea: blogging should be elegant, powerful, and accessible to everyone.
+                        In an era where content creation has become increasingly complex, we set out to build a platform that
+                        combines the sophistication of modern technology with the timeless elegance of the written word.
+                    </p>
+                    <p class="text-gray-700 leading-relaxed">
+                        Our platform draws inspiration from the golden age of publishing, bringing vintage aesthetics together
+                        with cutting-edge AI technology to create a unique writing experience that honors tradition while
+                        embracing innovation.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Mission & Vision -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="vintage-card p-8">
+                    <h3 class="text-2xl font-bold mb-4 flapper-accent">
+                        <i class="fas fa-bullseye mr-2"></i>Our Mission
+                    </h3>
+                    <p class="text-gray-700 leading-relaxed">
+                        To empower writers, creators, and organizations with a blogging platform that combines
+                        elegance with functionality, making professional content creation accessible to all while
+                        preserving the art of storytelling.
+                    </p>
+                </div>
+
+                <div class="vintage-card p-8">
+                    <h3 class="text-2xl font-bold mb-4 flapper-accent">
+                        <i class="fas fa-eye mr-2"></i>Our Vision
+                    </h3>
+                    <p class="text-gray-700 leading-relaxed">
+                        To become the premier platform for authentic, thoughtful content creation—where vintage
+                        charm meets modern innovation, and where every voice finds its perfect expression.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Core Values -->
+            <div class="vintage-card p-8">
+                <h2 class="text-3xl font-bold mb-6 flapper-accent">
+                    <i class="fas fa-heart mr-2"></i>Our Values
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-pencil-alt text-2xl text-black"></i>
+                        </div>
+                        <h4 class="font-bold text-lg mb-2">Quality Content</h4>
+                        <p class="text-gray-600 text-sm">
+                            We believe in the power of well-crafted content that informs, inspires, and engages.
+                        </p>
+                    </div>
+
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-users text-2xl text-black"></i>
+                        </div>
+                        <h4 class="font-bold text-lg mb-2">Community</h4>
+                        <p class="text-gray-600 text-sm">
+                            Building a supportive community where writers can connect, learn, and grow together.
+                        </p>
+                    </div>
+
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-lightbulb text-2xl text-black"></i>
+                        </div>
+                        <h4 class="font-bold text-lg mb-2">Innovation</h4>
+                        <p class="text-gray-600 text-sm">
+                            Continuously evolving with AI-powered tools while maintaining our commitment to simplicity.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Highlight -->
+            <div class="vintage-card p-8">
+                <h2 class="text-3xl font-bold mb-6 flapper-accent">
+                    <i class="fas fa-star mr-2"></i>What Makes Us Different
+                </h2>
+                <div class="space-y-4">
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold mb-1">Multi-Tenant Architecture</h4>
+                            <p class="text-gray-600">Perfect for organizations managing multiple blogs and teams.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold mb-1">AI Writing Assistant</h4>
+                            <p class="text-gray-600">Intelligent content suggestions and improvements powered by advanced AI.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold mb-1">Vintage-Modern Design</h4>
+                            <p class="text-gray-600">Unique aesthetic combining 1920s elegance with modern usability.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold mb-1">Customizable Themes</h4>
+                            <p class="text-gray-600">Create unique designs with our AI-powered theme generator.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold mb-1">Role-Based Access</h4>
+                            <p class="text-gray-600">Sophisticated permission system for teams of all sizes.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Call to Action -->
+            <div class="vintage-card p-8 text-center bg-gradient-to-r from-yellow-50 to-yellow-100">
+                <h2 class="text-3xl font-bold mb-4 flapper-accent">
+                    Join Our Community
+                </h2>
+                <p class="text-gray-700 text-lg mb-6 max-w-2xl mx-auto">
+                    Whether you're an individual blogger, a growing team, or an established organization,
+                    Opinian has the tools and features to help you succeed.
+                </p>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <a href="{{ url_for('register') }}" class="vintage-button text-lg px-8">
+                        <i class="fas fa-user-plus mr-2"></i>Get Started Free
+                    </a>
+                    <a href="{{ url_for('pages.contact_us') }}" class="px-8 py-3 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-lg">
+                        <i class="fas fa-envelope mr-2"></i>Contact Us
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

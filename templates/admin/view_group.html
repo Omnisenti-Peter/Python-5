@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block title %}{{ group.name }} - Group Details{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="container mx-auto px-4">
+        <!-- Header -->
+        <div class="mb-8 flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2 flapper-accent">
+                    <i class="fas fa-building mr-3"></i>{{ group.name }}
+                </h1>
+                <p class="text-xl text-gray-600">Group Details and Statistics</p>
+            </div>
+            <div class="flex gap-3">
+                <a href="{{ url_for('admin.edit_group', group_id=group.id) }}" class="vintage-button">
+                    <i class="fas fa-edit mr-2"></i>Edit Group
+                </a>
+                <a href="{{ url_for('admin.manage_groups') }}"
+                   class="px-6 py-3 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Groups
+                </a>
+            </div>
+        </div>
+
+        <!-- Status Badge -->
+        <div class="mb-8">
+            {% if group.is_active %}
+            <span class="px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
+                <i class="fas fa-check-circle mr-1"></i>Active Group
+            </span>
+            {% else %}
+            <span class="px-4 py-2 bg-gray-100 text-gray-800 rounded-full text-sm font-semibold">
+                <i class="fas fa-ban mr-1"></i>Inactive Group
+            </span>
+            {% endif %}
+        </div>
+
+        <!-- Statistics -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="vintage-card p-6 text-center">
+                <div class="text-3xl font-bold text-blue-600 mb-2">
+                    {{ stats.total_users }}
+                </div>
+                <div class="text-gray-600">Total Users</div>
+            </div>
+            <div class="vintage-card p-6 text-center">
+                <div class="text-3xl font-bold text-green-600 mb-2">
+                    {{ stats.active_users }}
+                </div>
+                <div class="text-gray-600">Active Users</div>
+            </div>
+            <div class="vintage-card p-6 text-center">
+                <div class="text-3xl font-bold text-yellow-600 mb-2">
+                    {{ stats.total_posts }}
+                </div>
+                <div class="text-gray-600">Blog Posts</div>
+            </div>
+            <div class="vintage-card p-6 text-center">
+                <div class="text-3xl font-bold text-purple-600 mb-2">
+                    {{ stats.total_pages }}
+                </div>
+                <div class="text-gray-600">Pages</div>
+            </div>
+        </div>
+
+        <!-- Group Information -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Basic Info -->
+            <div class="vintage-card p-6">
+                <h3 class="text-2xl font-bold mb-4 flapper-accent">
+                    <i class="fas fa-info-circle mr-2"></i>Basic Information
+                </h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-500 mb-1">Group ID</label>
+                        <p class="text-gray-800 font-mono">{{ group.id }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-500 mb-1">Group Name</label>
+                        <p class="text-gray-800 font-semibold">{{ group.name }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-500 mb-1">Description</label>
+                        <p class="text-gray-800">{{ group.description or 'No description provided' }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-500 mb-1">Theme</label>
+                        <p class="text-gray-800">{{ group.theme_name or 'Default Theme' }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-500 mb-1">Created</label>
+                        <p class="text-gray-800">{{ group.created_at.strftime('%B %d, %Y at %I:%M %p') if group.created_at else 'N/A' }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-500 mb-1">Last Updated</label>
+                        <p class="text-gray-800">{{ group.updated_at.strftime('%B %d, %Y at %I:%M %p') if group.updated_at else 'N/A' }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Administrator Info -->
+            <div class="vintage-card p-6">
+                <h3 class="text-2xl font-bold mb-4 flapper-accent">
+                    <i class="fas fa-user-shield mr-2"></i>Administrator
+                </h3>
+                {% if group.admin_username %}
+                <div class="space-y-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-2xl text-black"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-lg text-gray-800">{{ group.admin_first_name }} {{ group.admin_last_name }}</p>
+                            <p class="text-gray-600">@{{ group.admin_username }}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-500 mb-1">Email</label>
+                        <p class="text-gray-800">{{ group.admin_email }}</p>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-user-slash text-4xl mb-3"></i>
+                    <p>No administrator assigned</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Users -->
+        <div class="vintage-card p-6 mb-8">
+            <h3 class="text-2xl font-bold mb-4 flapper-accent">
+                <i class="fas fa-users mr-2"></i>Recent Users
+            </h3>
+            {% if users %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-100 border-b-2 border-yellow-600">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Username</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Name</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Email</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Role</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Joined</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for user in users %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-4 py-3 text-sm font-mono">{{ user.username }}</td>
+                            <td class="px-4 py-3 text-sm">{{ user.first_name }} {{ user.last_name }}</td>
+                            <td class="px-4 py-3 text-sm">{{ user.email }}</td>
+                            <td class="px-4 py-3 text-sm">
+                                <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-semibold">
+                                    {{ user.role_name }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-sm">
+                                {% if user.is_active %}
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-semibold">Active</span>
+                                {% else %}
+                                <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-semibold">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-500">
+                                {{ user.created_at.strftime('%b %d, %Y') if user.created_at else 'N/A' }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-4 text-center">
+                <a href="{{ url_for('admin.manage_users') }}" class="text-yellow-600 hover:text-yellow-700 font-semibold">
+                    View All Users <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <i class="fas fa-users-slash text-4xl mb-3"></i>
+                <p>No users in this group yet</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Recent Blog Posts -->
+        <div class="vintage-card p-6">
+            <h3 class="text-2xl font-bold mb-4 flapper-accent">
+                <i class="fas fa-blog mr-2"></i>Recent Blog Posts
+            </h3>
+            {% if posts %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-100 border-b-2 border-yellow-600">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Title</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Author</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Views</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Created</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for post in posts %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-4 py-3 text-sm">
+                                <strong class="text-gray-800">{{ post.title }}</strong>
+                            </td>
+                            <td class="px-4 py-3 text-sm">{{ post.author_username }}</td>
+                            <td class="px-4 py-3 text-sm">
+                                {% if post.is_published %}
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-semibold">Published</span>
+                                {% else %}
+                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-semibold">Draft</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-center">{{ post.view_count }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500">
+                                {{ post.created_at.strftime('%b %d, %Y') if post.created_at else 'N/A' }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-4 text-center">
+                <a href="{{ url_for('blog.blog_index') }}" class="text-yellow-600 hover:text-yellow-700 font-semibold">
+                    View All Posts <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <i class="fas fa-file-alt text-4xl mb-3"></i>
+                <p>No blog posts in this group yet</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Content Pages Section -->
+        {% if group.contact_page_content or group.about_page_content %}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+            <!-- Contact Page -->
+            {% if group.contact_page_content %}
+            <div class="vintage-card p-6">
+                <h3 class="text-2xl font-bold mb-4 flapper-accent">
+                    <i class="fas fa-envelope mr-2"></i>Contact Page Content
+                </h3>
+                <div class="prose max-w-none">
+                    {{ group.contact_page_content|safe }}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- About Page -->
+            {% if group.about_page_content %}
+            <div class="vintage-card p-6">
+                <h3 class="text-2xl font-bold mb-4 flapper-accent">
+                    <i class="fas fa-info mr-2"></i>About Page Content
+                </h3>
+                <div class="prose max-w-none">
+                    {{ group.about_page_content|safe }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

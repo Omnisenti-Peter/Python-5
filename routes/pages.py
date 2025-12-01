@@ -29,7 +29,7 @@ def view_page(slug):
                 SELECT p.*, u.username, u.first_name, u.last_name, g.name as group_name, t.css_variables, t.custom_css
                 FROM pages p
                 JOIN users u ON p.author_id = u.id
-                JOIN groups g ON p.group_id = g.id
+                LEFT JOIN groups g ON p.group_id = g.id
                 LEFT JOIN themes t ON g.theme_id = t.id
                 WHERE p.slug = %s AND p.is_published = TRUE
             """, (slug,))
@@ -273,13 +273,23 @@ def my_pages():
             
             if user_role in ['SuperAdmin', 'Admin']:
                 # Admins can see all pages in their group
-                cursor.execute("""
-                    SELECT p.*, u.username
-                    FROM pages p
-                    JOIN users u ON p.author_id = u.id
-                    WHERE p.group_id = %s
-                    ORDER BY p.created_at DESC
-                """, (session.get('group_id'),))
+                group_id = session.get('group_id')
+                if group_id is not None:
+                    cursor.execute("""
+                        SELECT p.*, u.username
+                        FROM pages p
+                        JOIN users u ON p.author_id = u.id
+                        WHERE p.group_id = %s
+                        ORDER BY p.created_at DESC
+                    """, (group_id,))
+                else:
+                    cursor.execute("""
+                        SELECT p.*, u.username
+                        FROM pages p
+                        JOIN users u ON p.author_id = u.id
+                        WHERE p.group_id IS NULL
+                        ORDER BY p.created_at DESC
+                    """)
             else:
                 # Regular users can only see their own pages
                 cursor.execute("""

@@ -10,7 +10,7 @@
             <!-- Profile Image -->
             <div class="flex-shrink-0">
                 {% if user.profile_image_url %}
-                <img src="{{ user.profile_image_url }}" alt="{{ user.username }}"
+                <img src="/{{ user.profile_image_url }}" alt="{{ user.username }}"
                      class="w-32 h-32 rounded-full object-cover border-4 border-yellow-600">
                 {% else %}
                 <div class="w-32 h-32 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600
@@ -81,7 +81,7 @@
             <div class="vintage-card blog-post-card overflow-hidden">
                 <!-- Featured Image -->
                 {% if post.featured_image_url %}
-                <img src="{{ post.featured_image_url }}" alt="{{ post.title }}"
+                <img src="/{{ post.featured_image_url }}" alt="{{ post.title }}"
                      class="w-full h-48 object-cover">
                 {% else %}
                 <div class="w-full h-48 bg-gradient-to-br from-gray-100 to-gray-200
@@ -99,7 +99,7 @@
                     </h3>
 
                     {% if post.excerpt %}
-                    <p class="text-gray-600 text-sm mb-4 line-clamp-3">{{ post.excerpt }}</p>
+                    <p class="text-gray-600 text-sm mb-4 line-clamp-3">{{ post.excerpt|striptags|truncate(150) }}</p>
                     {% endif %}
 
                     <!-- Post Meta -->
