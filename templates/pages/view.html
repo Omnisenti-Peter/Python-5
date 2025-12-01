@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page.title }} - Opinian{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Apply custom theme CSS if available */
+    {% if page.css_variables %}
+        :root {
+            {{ page.css_variables|safe }}
+        }
+    {% endif %}
+
+    {% if page.custom_css %}
+        {{ page.custom_css|safe }}
+    {% endif %}
+
+    /* Apply page template CSS if available */
+    {% if page.css_content %}
+        {{ page.css_content|safe }}
+    {% endif %}
+
+    .page-header {
+        background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+        padding: 60px 0;
+        margin-bottom: 40px;
+        border-bottom: 4px solid var(--secondary-color);
+    }
+
+    .page-content {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+
+    .page-content h1,
+    .page-content h2,
+    .page-content h3,
+    .page-content h4,
+    .page-content h5,
+    .page-content h6 {
+        font-family: var(--heading-font);
+        margin-top: 1.5em;
+        margin-bottom: 0.75em;
+        color: var(--primary-color);
+    }
+
+    .page-content p {
+        margin-bottom: 1.25em;
+        line-height: 1.8;
+        color: var(--text-color);
+    }
+
+    .page-content img {
+        max-width: 100%;
+        height: auto;
+        border-radius: var(--border-radius);
+        margin: 20px 0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .page-content a {
+        color: var(--secondary-color);
+        text-decoration: underline;
+        transition: color 0.3s ease;
+    }
+
+    .page-content a:hover {
+        color: var(--accent-color);
+    }
+
+    .page-content blockquote {
+        border-left: 4px solid var(--secondary-color);
+        padding-left: 20px;
+        margin: 20px 0;
+        font-style: italic;
+        color: #555;
+        background: rgba(212, 175, 55, 0.05);
+        padding: 15px 20px;
+        border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    }
+
+    .page-content ul,
+    .page-content ol {
+        margin: 20px 0;
+        padding-left: 40px;
+    }
+
+    .page-content li {
+        margin-bottom: 10px;
+        line-height: 1.8;
+    }
+
+    .page-content code {
+        background: #f4f4f4;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9em;
+    }
+
+    .page-content pre {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 20px;
+        border-radius: var(--border-radius);
+        overflow-x: auto;
+        margin: 20px 0;
+    }
+
+    .page-content pre code {
+        background: transparent;
+        padding: 0;
+        color: inherit;
+    }
+
+    .page-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+    }
+
+    .page-content table th,
+    .page-content table td {
+        border: 1px solid #ddd;
+        padding: 12px;
+        text-align: left;
+    }
+
+    .page-content table th {
+        background: var(--secondary-color);
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+
+    .page-meta {
+        border-top: 2px solid var(--secondary-color);
+        border-bottom: 2px solid var(--secondary-color);
+        padding: 20px 0;
+        margin: 40px 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        color: #666;
+        font-size: 0.9em;
+    }
+
+    .page-meta-item {
+        display: flex;
+        align-items: center;
+    }
+
+    .page-meta-item i {
+        margin-right: 8px;
+        color: var(--secondary-color);
+    }
+
+    .author-card {
+        background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(245, 245, 220, 0.9));
+        border: 2px solid var(--secondary-color);
+        border-radius: var(--border-radius);
+        padding: 30px;
+        margin: 40px 0;
+    }
+
+    .share-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .share-btn {
+        padding: 10px 20px;
+        border-radius: var(--border-radius);
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        transition: transform 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .share-btn:hover {
+        transform: translateY(-2px);
+        color: white;
+    }
+
+    .share-btn.twitter { background: #1DA1F2; }
+    .share-btn.facebook { background: #4267B2; }
+    .share-btn.linkedin { background: #0077B5; }
+    .share-btn.email { background: #666; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="container mx-auto px-4">
+        <div class="max-w-4xl mx-auto text-center">
+            <h1 class="text-5xl font-bold text-white mb-4">
+                {{ page.title }}
+            </h1>
+            {% if page.meta_description %}
+            <p class="text-xl text-gray-300">
+                {{ page.meta_description }}
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Page Content -->
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Page Meta Information -->
+        <div class="page-meta">
+            <div class="page-meta-item">
+                <i class="fas fa-user"></i>
+                <span>
+                    By <a href="{{ url_for('pages.user_profile', username=page.username) }}" class="font-semibold">
+                        {{ page.first_name }} {{ page.last_name }}
+                    </a>
+                </span>
+            </div>
+            {% if page.published_at %}
+            <div class="page-meta-item">
+                <i class="fas fa-calendar"></i>
+                <span>Published {{ page.published_at.strftime('%B %d, %Y') }}</span>
+            </div>
+            {% endif %}
+            {% if page.updated_at and page.updated_at != page.published_at %}
+            <div class="page-meta-item">
+                <i class="fas fa-sync"></i>
+                <span>Updated {{ page.updated_at.strftime('%B %d, %Y') }}</span>
+            </div>
+            {% endif %}
+            {% if page.group_name %}
+            <div class="page-meta-item">
+                <i class="fas fa-users"></i>
+                <span>{{ page.group_name }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Main Content -->
+        {% if page.html_content %}
+            <!-- Template-based content -->
+            <div class="template-wrapper mb-8">
+                {{ rendered_content|safe }}
+            </div>
+        {% else %}
+            <!-- Default content wrapper -->
+            <div class="vintage-card p-8 md:p-12 mb-8">
+                <div class="page-content">
+                    {{ rendered_content|safe }}
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Author Card -->
+        <div class="author-card">
+            <div class="flex items-start gap-6">
+                <div class="flex-shrink-0">
+                    <div class="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-white text-3xl font-bold">
+                        {{ page.first_name[0] if page.first_name else page.username[0]|upper }}
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-2xl font-bold mb-2">
+                        About the Author
+                    </h3>
+                    <p class="text-lg font-semibold text-gray-700 mb-2">
+                        {{ page.first_name }} {{ page.last_name }}
+                    </p>
+                    <p class="text-gray-600">
+                        {% if page.bio %}
+                            {{ page.bio }}
+                        {% else %}
+                            Content creator on the Opinian platform.
+                        {% endif %}
+                    </p>
+                    <a href="{{ url_for('pages.user_profile', username=page.username) }}"
+                       class="inline-block mt-3 text-blue-600 hover:text-blue-800 font-semibold">
+                        View Profile <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Share Section -->
+        <div class="vintage-card p-6 mb-8">
+            <h3 class="text-xl font-bold mb-4">
+                <i class="fas fa-share-alt mr-2"></i>Share This Page
+            </h3>
+            <div class="share-buttons">
+                <a href="https://twitter.com/intent/tweet?text={{ page.title|urlencode }}&url={{ request.url|urlencode }}"
+                   target="_blank" class="share-btn twitter">
+                    <i class="fab fa-twitter"></i>Twitter
+                </a>
+                <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.url|urlencode }}"
+                   target="_blank" class="share-btn facebook">
+                    <i class="fab fa-facebook-f"></i>Facebook
+                </a>
+                <a href="https://www.linkedin.com/shareArticle?mini=true&url={{ request.url|urlencode }}&title={{ page.title|urlencode }}"
+                   target="_blank" class="share-btn linkedin">
+                    <i class="fab fa-linkedin-in"></i>LinkedIn
+                </a>
+                <a href="mailto:?subject={{ page.title|urlencode }}&body=Check out this page: {{ request.url|urlencode }}"
+                   class="share-btn email">
+                    <i class="fas fa-envelope"></i>Email
+                </a>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex justify-center mt-8">
+            <a href="{{ url_for('index') }}" class="vintage-button">
+                <i class="fas fa-home mr-2"></i>Back to Home
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Smooth scroll for anchor links within the page
+document.querySelectorAll('.page-content a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    });
+});
+
+// Add copy button to code blocks
+document.querySelectorAll('.page-content pre').forEach(pre => {
+    const copyBtn = document.createElement('button');
+    copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+    copyBtn.className = 'absolute top-2 right-2 px-3 py-1 bg-gray-700 text-white text-sm rounded hover:bg-gray-600';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'relative';
+    pre.parentNode.insertBefore(wrapper, pre);
+    wrapper.appendChild(pre);
+    wrapper.appendChild(copyBtn);
+
+    copyBtn.addEventListener('click', () => {
+        const code = pre.querySelector('code') || pre;
+        navigator.clipboard.writeText(code.textContent).then(() => {
+            copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            setTimeout(() => {
+                copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+            }, 2000);
+        });
+    });
+});
+
+// Execute template JavaScript if available
+{% if page.js_content %}
+    {{ page.js_content|safe }}
+{% endif %}
+</script>
+{% endblock %}

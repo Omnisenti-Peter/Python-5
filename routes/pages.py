@@ -26,24 +26,37 @@ def view_page(slug):
             cursor = conn.cursor(cursor_factory=RealDictCursor)
             
             cursor.execute("""
-                SELECT p.*, u.username, u.first_name, u.last_name, g.name as group_name, t.css_variables, t.custom_css
+                SELECT p.*, u.username, u.first_name, u.last_name, u.bio,
+                       g.name as group_name,
+                       th.css_variables, th.custom_css,
+                       tpl.name as template_name, tpl.html_content, tpl.css_content, tpl.js_content
                 FROM pages p
                 JOIN users u ON p.author_id = u.id
                 LEFT JOIN groups g ON p.group_id = g.id
-                LEFT JOIN themes t ON g.theme_id = t.id
+                LEFT JOIN themes th ON g.theme_id = th.id
+                LEFT JOIN templates tpl ON p.template_id = tpl.id
                 WHERE p.slug = %s AND p.is_published = TRUE
             """, (slug,))
             
             page = cursor.fetchone()
-            
+
             if not page:
                 flash('Page not found', 'danger')
                 return redirect(url_for('index'))
-            
+
+            # Process template if one is assigned
+            rendered_content = page['content']
+            if page.get('html_content'):
+                # Apply template HTML with variable substitution
+                template_html = page['html_content']
+                template_html = template_html.replace('{{content}}', page['content'] or '')
+                template_html = template_html.replace('{{title}}', page['title'] or '')
+                rendered_content = template_html
+
             cursor.close()
             conn.close()
-            
-            return render_template('pages/view.html', page=page)
+
+            return render_template('pages/view.html', page=page, rendered_content=rendered_content)
         else:
             flash('Database connection error', 'danger')
             return redirect(url_for('index'))
@@ -63,7 +76,7 @@ def create_page():
         meta_description = request.form.get('meta_description')
         meta_keywords = request.form.get('meta_keywords')
         is_published = request.form.get('is_published') == 'on'
-        template_id = request.form.get('template_id')
+        template_id = request.form.get('template_id') or None
         
         # Generate slug from title
         slug = re.sub(r'[^a-zA-Z0-9-]+', '-', title.lower()).strip('-')
@@ -162,7 +175,7 @@ def edit_page(page_id):
                 meta_description = request.form.get('meta_description')
                 meta_keywords = request.form.get('meta_keywords')
                 is_published = request.form.get('is_published') == 'on'
-                template_id = request.form.get('template_id')
+                template_id = request.form.get('template_id') or None
                 
                 # Update slug if title changed
                 slug = re.sub(r'[^a-zA-Z0-9-]+', '-', title.lower()).strip('-')

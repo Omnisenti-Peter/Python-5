@@ -1,0 +1,409 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Page - Opinian{% endblock %}
+
+{% block extra_css %}
+<!-- Quill Rich Text Editor CSS -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<style>
+    .ql-editor {
+        min-height: 500px;
+        font-size: 16px;
+        line-height: 1.6;
+    }
+    .ql-toolbar {
+        background: #f8f9fa;
+        border-radius: 8px 8px 0 0;
+    }
+    .ql-container {
+        font-family: var(--body-font);
+        border-radius: 0 0 8px 8px;
+    }
+    .preview-mode {
+        display: none;
+    }
+    .preview-mode.active {
+        display: block;
+    }
+    .device-preview {
+        margin: 0 auto;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        background: white;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        overflow: auto;
+    }
+    .device-preview.desktop { max-width: 100%; }
+    .device-preview.tablet { max-width: 768px; }
+    .device-preview.mobile { max-width: 375px; }
+    .code-view {
+        display: none;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 20px;
+        border-radius: 8px;
+        overflow-x: auto;
+    }
+    .code-view.active {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="container mx-auto px-4">
+        <!-- Header -->
+        <div class="mb-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">
+                    <i class="fas fa-edit mr-3 text-orange-600"></i>Edit Page
+                </h1>
+                <p class="text-gray-600">Update your page content and settings</p>
+            </div>
+            <div class="flex space-x-2">
+                <a href="{{ url_for('pages.my_pages') }}" class="px-4 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-50">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to My Pages
+                </a>
+                <button type="button" onclick="togglePreview()" class="vintage-button text-sm">
+                    <i class="fas fa-eye mr-2"></i>Preview
+                </button>
+            </div>
+        </div>
+
+        <!-- Editor Container -->
+        <div id="editor-container">
+            <form method="POST" id="page-form" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Main Content -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Page Title -->
+                    <div class="vintage-card p-6">
+                        <label for="title" class="block text-lg font-semibold mb-3 text-gray-700">
+                            <i class="fas fa-heading mr-2"></i>Page Title *
+                        </label>
+                        <input type="text" id="title" name="title" required
+                               class="vintage-input w-full text-lg"
+                               value="{{ page.title }}"
+                               placeholder="Enter page title...">
+                        <p class="text-xs text-gray-500 mt-2">Current slug: <strong>{{ page.slug }}</strong></p>
+                    </div>
+
+                    <!-- View Mode Tabs -->
+                    <div class="vintage-card p-4">
+                        <div class="flex space-x-2 border-b-2 border-gray-200 pb-2">
+                            <button type="button" onclick="switchView('editor')"
+                                    class="view-tab px-4 py-2 font-semibold rounded-t active" id="editor-tab">
+                                <i class="fas fa-edit mr-2"></i>Editor
+                            </button>
+                            <button type="button" onclick="switchView('code')"
+                                    class="view-tab px-4 py-2 font-semibold rounded-t" id="code-tab">
+                                <i class="fas fa-code mr-2"></i>Code View
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Rich Text Editor -->
+                    <div class="vintage-card" id="editor-view">
+                        <div id="editor"></div>
+                        <input type="hidden" name="content" id="content-hidden">
+                    </div>
+
+                    <!-- Code View -->
+                    <div class="vintage-card code-view" id="code-view">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-white font-semibold">HTML Code</h3>
+                            <button type="button" onclick="copyCode()" class="text-white hover:text-yellow-300">
+                                <i class="fas fa-copy mr-2"></i>Copy
+                            </button>
+                        </div>
+                        <pre id="code-content" class="text-sm"></pre>
+                    </div>
+
+                    <!-- SEO Settings -->
+                    <div class="vintage-card p-6">
+                        <h3 class="text-lg font-bold mb-4">
+                            <i class="fas fa-search mr-2 text-blue-600"></i>SEO Settings
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="meta_description" class="block text-sm font-semibold mb-2">
+                                    Meta Description
+                                </label>
+                                <textarea id="meta_description" name="meta_description" rows="2"
+                                          class="vintage-input w-full text-sm"
+                                          placeholder="Brief description for search engines..."
+                                          maxlength="160">{{ page.meta_description or '' }}</textarea>
+                                <p class="text-xs text-gray-500 mt-1">Max 160 characters - appears in search results</p>
+                            </div>
+                            <div>
+                                <label for="meta_keywords" class="block text-sm font-semibold mb-2">
+                                    Meta Keywords
+                                </label>
+                                <input type="text" id="meta_keywords" name="meta_keywords"
+                                       class="vintage-input w-full text-sm"
+                                       value="{{ page.meta_keywords or '' }}"
+                                       placeholder="keyword1, keyword2, keyword3">
+                                <p class="text-xs text-gray-500 mt-1">Separate keywords with commas</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="space-y-6">
+                    <!-- Publish Settings -->
+                    <div class="vintage-card p-6">
+                        <h3 class="text-lg font-bold mb-4">
+                            <i class="fas fa-cog mr-2 text-green-600"></i>Page Settings
+                        </h3>
+
+                        <!-- Publish Status -->
+                        <div class="mb-4">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" name="is_published" id="is_published"
+                                       {% if page.is_published %}checked{% endif %} class="mr-3">
+                                <span class="text-gray-700 font-semibold">
+                                    <i class="fas fa-globe mr-2 text-green-600"></i>Published
+                                </span>
+                            </label>
+                            <p class="text-xs text-gray-500 mt-2">Toggle to publish or unpublish this page</p>
+                        </div>
+
+                        <!-- Page Status Info -->
+                        <div class="bg-blue-50 p-3 rounded-lg mb-4">
+                            <p class="text-xs text-gray-700">
+                                <strong>Created:</strong> {{ page.created_at.strftime('%Y-%m-%d %H:%M') if page.created_at else 'N/A' }}
+                            </p>
+                            {% if page.published_at %}
+                            <p class="text-xs text-gray-700 mt-1">
+                                <strong>Published:</strong> {{ page.published_at.strftime('%Y-%m-%d %H:%M') }}
+                            </p>
+                            {% endif %}
+                            {% if page.updated_at %}
+                            <p class="text-xs text-gray-700 mt-1">
+                                <strong>Last Updated:</strong> {{ page.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                            </p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="space-y-3 mt-6">
+                            <button type="submit" class="vintage-button w-full">
+                                <i class="fas fa-save mr-2"></i>Update Page
+                            </button>
+                            <a href="{{ url_for('pages.my_pages') }}"
+                               class="block text-center w-full px-4 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-50">
+                                <i class="fas fa-times mr-2"></i>Cancel
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Page Template -->
+                    <div class="vintage-card p-6">
+                        <h3 class="text-lg font-bold mb-4">
+                            <i class="fas fa-file-code mr-2 text-purple-600"></i>Page Template
+                        </h3>
+                        <select name="template_id" id="template_id" class="vintage-input w-full">
+                            <option value="">Default Template</option>
+                            {% for template in templates %}
+                                <option value="{{ template.id }}"
+                                    {% if page.template_id == template.id %}selected{% endif %}>
+                                    {{ template.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-xs text-gray-500 mt-2">Select a template for this page layout</p>
+                    </div>
+
+                    <!-- Delete Page -->
+                    <div class="vintage-card p-6 bg-red-50 border-red-300">
+                        <h3 class="text-lg font-bold mb-3 text-red-700">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>Danger Zone
+                        </h3>
+                        <p class="text-sm text-gray-700 mb-3">Permanently delete this page. This action cannot be undone.</p>
+                        <form method="POST" action="{{ url_for('pages.delete_page', page_id=page.id) }}"
+                              onsubmit="return confirm('Are you sure you want to delete this page? This cannot be undone.');">
+                            <button type="submit" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                                <i class="fas fa-trash-alt mr-2"></i>Delete Page
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Preview Container -->
+        <div id="preview-container" class="preview-mode">
+            <div class="mb-4 flex justify-between items-center">
+                <h2 class="text-2xl font-bold">
+                    <i class="fas fa-eye mr-2"></i>Page Preview
+                </h2>
+                <div class="flex space-x-2">
+                    <button type="button" onclick="setPreviewDevice('desktop')"
+                            class="px-3 py-1 border-2 border-gray-300 rounded device-btn active">
+                        <i class="fas fa-desktop"></i> Desktop
+                    </button>
+                    <button type="button" onclick="setPreviewDevice('tablet')"
+                            class="px-3 py-1 border-2 border-gray-300 rounded device-btn">
+                        <i class="fas fa-tablet-alt"></i> Tablet
+                    </button>
+                    <button type="button" onclick="setPreviewDevice('mobile')"
+                            class="px-3 py-1 border-2 border-gray-300 rounded device-btn">
+                        <i class="fas fa-mobile-alt"></i> Mobile
+                    </button>
+                    <button type="button" onclick="togglePreview()"
+                            class="px-3 py-1 bg-gray-600 text-white rounded">
+                        <i class="fas fa-times mr-2"></i>Close Preview
+                    </button>
+                </div>
+            </div>
+            <div class="device-preview desktop p-8" id="preview-frame">
+                <h1 id="preview-title" class="text-4xl font-bold mb-6"></h1>
+                <div id="preview-content" class="prose max-w-none"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Quill Rich Text Editor -->
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+<script>
+// Initialize Quill editor with existing content
+var quill = new Quill('#editor', {
+    theme: 'snow',
+    modules: {
+        toolbar: [
+            [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            ['blockquote', 'code-block'],
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+            [{ 'indent': '-1'}, { 'indent': '+1' }],
+            [{ 'color': [] }, { 'background': [] }],
+            [{ 'align': [] }],
+            ['link', 'image', 'video'],
+            ['clean']
+        ]
+    },
+    placeholder: 'Start writing your page content here...'
+});
+
+// Load existing content
+var existingContent = {{ page.content|tojson|safe }};
+if (existingContent) {
+    quill.clipboard.dangerouslyPasteHTML(existingContent);
+}
+
+// Update hidden input on text change
+quill.on('text-change', function() {
+    document.getElementById('content-hidden').value = quill.root.innerHTML;
+    updateCodeView();
+});
+
+// Initialize content-hidden field
+document.getElementById('content-hidden').value = quill.root.innerHTML;
+
+// View switching
+function switchView(view) {
+    const editorView = document.getElementById('editor-view');
+    const codeView = document.getElementById('code-view');
+    const editorTab = document.getElementById('editor-tab');
+    const codeTab = document.getElementById('code-tab');
+
+    if (view === 'editor') {
+        editorView.style.display = 'block';
+        codeView.classList.remove('active');
+        editorTab.classList.add('active', 'bg-yellow-100');
+        codeTab.classList.remove('active', 'bg-yellow-100');
+    } else {
+        editorView.style.display = 'none';
+        codeView.classList.add('active');
+        codeTab.classList.add('active', 'bg-yellow-100');
+        editorTab.classList.remove('active', 'bg-yellow-100');
+        updateCodeView();
+    }
+}
+
+function updateCodeView() {
+    const html = quill.root.innerHTML;
+    document.getElementById('code-content').textContent = html;
+}
+
+function copyCode() {
+    const code = document.getElementById('code-content').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+        alert('HTML code copied to clipboard!');
+    });
+}
+
+// Preview functions
+function togglePreview() {
+    const editor = document.getElementById('editor-container');
+    const preview = document.getElementById('preview-container');
+
+    if (preview.classList.contains('active')) {
+        preview.classList.remove('active');
+        editor.style.display = 'block';
+    } else {
+        updatePreview();
+        preview.classList.add('active');
+        editor.style.display = 'none';
+    }
+}
+
+function updatePreview() {
+    const title = document.getElementById('title').value;
+    const content = quill.root.innerHTML;
+
+    document.getElementById('preview-title').textContent = title || 'Untitled Page';
+    document.getElementById('preview-content').innerHTML = content;
+}
+
+function setPreviewDevice(device) {
+    const frame = document.getElementById('preview-frame');
+    frame.className = `device-preview ${device} p-8`;
+
+    // Update button states
+    document.querySelectorAll('.device-btn').forEach(btn => {
+        btn.classList.remove('active', 'bg-yellow-100', 'border-yellow-600');
+    });
+    event.target.closest('button').classList.add('active', 'bg-yellow-100', 'border-yellow-600');
+}
+
+// Active tab styling
+document.querySelectorAll('.view-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('.view-tab').forEach(t => {
+            t.classList.remove('active', 'bg-yellow-100', 'border-b-2', 'border-yellow-600');
+        });
+        this.classList.add('active', 'bg-yellow-100', 'border-b-2', 'border-yellow-600');
+    });
+});
+
+// Initialize first tab
+document.getElementById('editor-tab').classList.add('bg-yellow-100', 'border-b-2', 'border-yellow-600');
+
+// Form validation
+document.getElementById('page-form').addEventListener('submit', function(e) {
+    const title = document.getElementById('title').value.trim();
+    const content = quill.root.innerHTML.trim();
+
+    if (!title) {
+        e.preventDefault();
+        alert('Please enter a page title');
+        return false;
+    }
+
+    if (!content || content === '<p><br></p>') {
+        e.preventDefault();
+        alert('Please add some content to your page');
+        return false;
+    }
+
+    return true;
+});
+</script>
+{% endblock %}

@@ -428,12 +428,34 @@ def insert_initial_data():
             ON CONFLICT (setting_key) DO NOTHING
         """)
         
+        # Insert default page templates
+        cursor.execute("""
+            INSERT INTO templates (name, description, html_content, css_content, is_default) VALUES
+            ('Default Page', 'Simple clean page template',
+             '<div class="page-wrapper"><div class="page-content">{{content}}</div></div>',
+             '.page-wrapper { max-width: 1200px; margin: 0 auto; padding: 40px 20px; } .page-content { background: white; padding: 40px; border-radius: 8px; }',
+             TRUE),
+            ('Full Width', 'Full width page without sidebar',
+             '<div class="full-width-wrapper">{{content}}</div>',
+             '.full-width-wrapper { width: 100%; padding: 20px; }',
+             TRUE),
+            ('Two Column', 'Two column layout with sidebar',
+             '<div class="two-column-layout"><main class="main-content">{{content}}</main><aside class="sidebar"><div class="sidebar-widget">Sidebar content</div></aside></div>',
+             '.two-column-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; max-width: 1200px; margin: 0 auto; padding: 40px 20px; } .main-content { background: white; padding: 40px; border-radius: 8px; } .sidebar { padding: 20px; }',
+             TRUE),
+            ('Landing Page', 'Hero section with content area',
+             '<div class="hero-section"><h1 class="hero-title">{{title}}</h1></div><div class="content-section">{{content}}</div>',
+             '.hero-section { background: linear-gradient(135deg, #1a1a1a, #2c2c2c); color: white; padding: 100px 20px; text-align: center; } .hero-title { font-size: 3rem; margin-bottom: 20px; } .content-section { max-width: 1000px; margin: 60px auto; padding: 0 20px; }',
+             TRUE)
+            ON CONFLICT DO NOTHING
+        """)
+
         conn.commit()
         print("Initial data inserted successfully")
-        
+
         cursor.close()
         conn.close()
-        
+
     except Exception as e:
         print(f"Error inserting initial data: {e}")
         sys.exit(1)
