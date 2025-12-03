@@ -111,6 +111,27 @@ def log_user_activity(user_id, action, resource_type=None, resource_id=None, met
     except Exception as e:
         logger.error(f"Error logging user activity: {e}")
 
+def get_active_theme(group_id):
+    """Get the active theme for a group"""
+    if not group_id:
+        return None
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("""
+                SELECT t.* FROM themes t
+                JOIN groups g ON g.theme_id = t.id
+                WHERE g.id = %s
+            """, (group_id,))
+            theme = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            return theme
+    except Exception as e:
+        logger.error(f"Error loading theme: {e}")
+        return None
+
 # Routes will be defined in separate modules
 # For now, let's create the basic structure
 
@@ -341,8 +362,42 @@ def uploaded_file(filename):
     """Serve uploaded files"""
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+# Context processor to inject active theme into all templates
+@app.context_processor
+def inject_active_theme():
+    """Inject the active theme for the current user's group into all templates"""
+    theme = None
+    if 'group_id' in session:
+        theme = get_active_theme(session['group_id'])
+    return {'active_theme': theme}
+
+def make_breadcrumbs(*crumbs):
+    """
+    Helper function to create breadcrumb navigation
+
+    Usage:
+        breadcrumbs = make_breadcrumbs(
+            ('Home', url_for('index')),
+            ('Admin', url_for('admin.dashboard')),
+            ('Users', None)  # Current page (no link)
+        )
+
+    Returns list of dicts: [{'name': 'Home', 'url': '/'}]
+    """
+    result = []
+    for crumb in crumbs:
+        if isinstance(crumb, tuple) and len(crumb) == 2:
+            name, url = crumb
+            result.append({'name': name, 'url': url})
+        elif isinstance(crumb, dict):
+            result.append(crumb)
+    return result
+
+# Make breadcrumb helper available in templates
+app.jinja_env.globals['make_breadcrumbs'] = make_breadcrumbs
+
 # Import additional route modules
-from routes import blog, pages, admin, themes, api
+from routes import blog, pages, admin, themes, api, media
 
 # Register blueprints
 app.register_blueprint(blog.bp)
@@ -350,6 +405,7 @@ app.register_blueprint(pages.bp)
 app.register_blueprint(admin.bp)
 app.register_blueprint(themes.bp)
 app.register_blueprint(api.bp)
+app.register_blueprint(media.bp)
 
 # Error handlers
 @app.errorhandler(404)

@@ -2,6 +2,13 @@
 
 {% block title %}Create User - Admin{% endblock %}
 
+{% set breadcrumbs = make_breadcrumbs(
+    ('Home', url_for('index')),
+    ('Admin', url_for('admin.dashboard')),
+    ('Users', url_for('admin.manage_users')),
+    ('Create User', None)
+) %}
+
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-2xl mx-auto">

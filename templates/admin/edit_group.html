@@ -2,6 +2,13 @@
 
 {% block title %}Edit Group - Admin{% endblock %}
 
+{% set breadcrumbs = make_breadcrumbs(
+    ('Home', url_for('index')),
+    ('Admin', url_for('admin.dashboard')),
+    ('Groups', url_for('admin.manage_groups')),
+    ('Edit Group', None)
+) %}
+
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8">
     <div class="container mx-auto px-4 max-w-4xl">
@@ -55,6 +62,24 @@
                         </option>
                         {% endfor %}
                     </select>
+                </div>
+
+                <!-- Theme Selection -->
+                <div class="mb-6">
+                    <label for="theme_id" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-palette mr-1"></i>Group Theme
+                    </label>
+                    <select id="theme_id" name="theme_id" class="vintage-input w-full">
+                        <option value="">No theme (Default styling)</option>
+                        {% for theme in themes %}
+                        <option value="{{ theme.id }}" {% if group.theme_id == theme.id %}selected{% endif %}>
+                            {{ theme.name }}{% if theme.theme_type %} ({{ theme.theme_type }}){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">
+                        <i class="fas fa-info-circle mr-1"></i>Select the theme that will be applied to all pages and blog posts for this group
+                    </p>
                 </div>
 
                 <!-- Contact Page Content -->

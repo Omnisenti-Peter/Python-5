@@ -17,15 +17,29 @@
     <!-- Custom CSS for 1920s/1940s theme -->
     <style>
         :root {
-            --primary-color: #1a1a1a;
-            --secondary-color: #d4af37;
-            --accent-color: #8b4513;
-            --background-color: #f5f5dc;
-            --text-color: #2c2c2c;
-            --heading-font: 'Playfair Display', serif;
-            --body-font: 'Source Sans Pro', sans-serif;
-            --border-radius: 8px;
-            --shadow-strength: 0.3;
+            {% if active_theme and active_theme.css_variables %}
+                /* Theme: {{ active_theme.name }} - Applied to {{ session.get('username', 'User') }}'s group */
+                --primary-color: {{ active_theme.css_variables.primary_color|default('#1a1a1a') }};
+                --secondary-color: {{ active_theme.css_variables.secondary_color|default('#d4af37') }};
+                --accent-color: {{ active_theme.css_variables.accent_color|default('#8b4513') }};
+                --background-color: {{ active_theme.css_variables.background_color|default('#f5f5dc') }};
+                --text-color: {{ active_theme.css_variables.text_color|default('#2c2c2c') }};
+                --heading-font: '{{ active_theme.css_variables.heading_font|default('Playfair Display') }}', serif;
+                --body-font: '{{ active_theme.css_variables.body_font|default('Source Sans Pro') }}', sans-serif;
+                --border-radius: {{ active_theme.css_variables.border_radius|default('8px') }};
+                --shadow-strength: {{ active_theme.css_variables.shadow_strength|default('0.3') }};
+            {% else %}
+                /* Default Theme - No group theme selected */
+                --primary-color: #1a1a1a;
+                --secondary-color: #d4af37;
+                --accent-color: #8b4513;
+                --background-color: #f5f5dc;
+                --text-color: #2c2c2c;
+                --heading-font: 'Playfair Display', serif;
+                --body-font: 'Source Sans Pro', sans-serif;
+                --border-radius: 8px;
+                --shadow-strength: 0.3;
+            {% endif %}
         }
         
         body {
@@ -256,8 +270,18 @@
             h1 { font-size: 2rem; }
             h2 { font-size: 1.5rem; }
         }
+
+        /* Custom Theme CSS */
+        {% if active_theme and active_theme.custom_css %}
+        {{ active_theme.custom_css | safe }}
+        {% endif %}
+
+        /* Visual Builder CSS */
+        {% if active_theme and active_theme.gjs_data and active_theme.gjs_data.css %}
+        {{ active_theme.gjs_data.css | safe }}
+        {% endif %}
     </style>
-    
+
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -394,9 +418,38 @@
             </div>
         {% endif %}
     {% endwith %}
-    
+
+    <!-- Breadcrumb Navigation -->
+    {% block breadcrumb %}
+    {% if breadcrumbs %}
+    <div class="bg-gray-100 border-b border-gray-200 py-3 mt-16">
+        <div class="container mx-auto px-4">
+            <nav class="flex items-center text-sm" aria-label="Breadcrumb">
+                <ol class="flex items-center space-x-2">
+                    {% for crumb in breadcrumbs %}
+                        {% if not loop.last %}
+                        <li class="flex items-center">
+                            <a href="{{ crumb.url }}" class="text-gray-600 hover:text-gray-900 font-medium transition-colors">
+                                {% if loop.first %}<i class="fas fa-home mr-1"></i>{% endif %}
+                                {{ crumb.name }}
+                            </a>
+                            <i class="fas fa-chevron-right mx-2 text-gray-400 text-xs"></i>
+                        </li>
+                        {% else %}
+                        <li class="flex items-center">
+                            <span class="text-gray-900 font-semibold">{{ crumb.name }}</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                </ol>
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+    {% endblock %}
+
     <!-- Main Content -->
-    <main class="pt-16 min-h-screen">
+    <main class="{% if breadcrumbs %}pt-0{% else %}pt-16{% endif %} min-h-screen">
         {% block content %}{% endblock %}
     </main>
     

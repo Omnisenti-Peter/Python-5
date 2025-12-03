@@ -1,56 +1,138 @@
 {% extends "base.html" %}
 
-{% block title %}AI Theme Generator - Opinian{% endblock %}
+{% block title %}AI Theme Assistant - Opinian{% endblock %}
+
+{% set breadcrumbs = make_breadcrumbs(
+    ('Home', url_for('index')),
+    ('Themes', url_for('themes.index')),
+    ('AI Assistant', None)
+) %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
-    <div class="max-w-2xl mx-auto">
-        <div class="mb-8">
-            <h1 class="text-4xl font-bold mb-2">
-                <i class="fas fa-magic mr-3 text-purple-600"></i>AI Theme Generator
+    <div class="max-w-4xl mx-auto">
+        <!-- Professional Header -->
+        <div class="mb-10">
+            <h1 class="text-5xl font-bold mb-3 text-gray-900">
+                <i class="fas fa-wand-magic-sparkles mr-3 text-purple-600"></i>AI Theme Assistant
             </h1>
-            <p class="text-gray-600">Describe your vision and let AI create a custom theme</p>
+            <p class="text-lg text-gray-600">Describe your vision, and let AI generate an intelligent theme design</p>
         </div>
 
-        <div class="vintage-card p-8">
-            <form method="POST">
-                <div class="mb-6">
-                    <label for="theme_name" class="block text-sm font-semibold text-gray-700 mb-2">
-                        Theme Name *
-                    </label>
-                    <input type="text" id="theme_name" name="theme_name" required
-                           class="vintage-input w-full" placeholder="e.g., Ocean Breeze">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Main Form -->
+            <div class="lg:col-span-2">
+                <div class="vintage-card p-8">
+                    <h2 class="text-2xl font-bold mb-6 text-gray-900">
+                        <i class="fas fa-brain mr-2 text-purple-600"></i>Describe Your Theme
+                    </h2>
+
+                    <form method="POST" id="aiThemeForm">
+                        <div class="mb-6">
+                            <label for="prompt" class="block text-sm font-bold text-gray-700 mb-3">
+                                <i class="fas fa-comment-dots mr-1"></i>Theme Vision *
+                            </label>
+                            <textarea id="prompt" name="prompt" rows="8" required
+                                      class="vintage-input w-full font-sans"
+                                      placeholder="Describe your ideal theme in detail...&#10;&#10;Example:&#10;'A professional tech startup theme with a modern, clean aesthetic. Use deep navy blues paired with vibrant cyan accents. The design should feel innovative and trustworthy, with sharp geometric elements and contemporary sans-serif fonts. Target audience is enterprise clients looking for cutting-edge solutions.'"></textarea>
+                            <p class="text-xs text-gray-500 mt-2">
+                                <i class="fas fa-lightbulb text-yellow-500 mr-1"></i>
+                                Include: colors you envision, mood/feeling, target audience, industry, and any specific design preferences
+                            </p>
+                        </div>
+
+                        <div class="mb-6 p-5 bg-purple-50 border-2 border-purple-200 rounded-lg">
+                            <h3 class="font-bold text-purple-900 mb-3 flex items-center">
+                                <i class="fas fa-robot mr-2"></i>AI Will Generate:
+                            </h3>
+                            <ul class="space-y-2 text-sm text-purple-800">
+                                <li class="flex items-start">
+                                    <i class="fas fa-check-circle mt-1 mr-2 text-purple-600"></i>
+                                    <span><strong>Smart Color Palette:</strong> Harmonious colors with proper contrast and accessibility</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check-circle mt-1 mr-2 text-purple-600"></i>
+                                    <span><strong>Professional Fonts:</strong> Google Fonts selection that matches your theme</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check-circle mt-1 mr-2 text-purple-600"></i>
+                                    <span><strong>Design System:</strong> Border radius, shadows, and spacing optimized for your style</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check-circle mt-1 mr-2 text-purple-600"></i>
+                                    <span><strong>Design Rationale:</strong> Explanation of color theory and font choices</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="flex justify-between items-center pt-4 border-t border-gray-200">
+                            <a href="{{ url_for('themes.index') }}" class="text-gray-600 hover:text-gray-800 font-semibold">
+                                <i class="fas fa-arrow-left mr-2"></i>Back to Themes
+                            </a>
+                            <button type="submit" class="px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl">
+                                <i class="fas fa-sparkles mr-2"></i>Generate with AI
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Tips Sidebar -->
+            <div class="lg:col-span-1">
+                <div class="vintage-card p-6 mb-6 bg-gradient-to-br from-blue-50 to-indigo-50">
+                    <h3 class="font-bold text-lg mb-4 text-gray-900">
+                        <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>Pro Tips
+                    </h3>
+                    <ul class="space-y-3 text-sm text-gray-700">
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+                            <span><strong>Be specific:</strong> Mention exact colors or moods (e.g., "forest green", "energetic")</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+                            <span><strong>Describe context:</strong> Industry, audience, or purpose helps AI choose better colors</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+                            <span><strong>Reference examples:</strong> "Like Apple's minimalism" or "Spotify's bold style"</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+                            <span><strong>Mention constraints:</strong> "Must be accessible" or "needs high contrast"</span>
+                        </li>
+                    </ul>
                 </div>
 
-                <div class="mb-6">
-                    <label for="prompt" class="block text-sm font-semibold text-gray-700 mb-2">
-                        Describe Your Theme *
-                    </label>
-                    <textarea id="prompt" name="prompt" rows="6" required
-                              class="vintage-input w-full"
-                              placeholder="Describe the look and feel you want... For example:&#10;&#10;'A modern dark theme with blue accents, inspired by the ocean at night. Use deep navy blues, turquoise highlights, and clean typography.'"></textarea>
-                    <p class="text-xs text-gray-500 mt-2">
-                        Be specific about colors, mood, and style preferences
-                    </p>
+                <div class="vintage-card p-6 bg-gradient-to-br from-green-50 to-emerald-50">
+                    <h3 class="font-bold text-lg mb-3 text-gray-900">
+                        <i class="fas fa-palette text-purple-600 mr-2"></i>Example Prompts
+                    </h3>
+                    <div class="space-y-3 text-xs text-gray-700">
+                        <div class="p-3 bg-white rounded border border-gray-200">
+                            <strong class="text-purple-700">Tech Startup:</strong>
+                            <p class="mt-1">"Modern SaaS theme with deep purples and electric blues. Clean, minimal, innovative feel."</p>
+                        </div>
+                        <div class="p-3 bg-white rounded border border-gray-200">
+                            <strong class="text-purple-700">Luxury Brand:</strong>
+                            <p class="mt-1">"Elegant theme with gold accents on dark backgrounds. Sophisticated, premium, exclusive."</p>
+                        </div>
+                        <div class="p-3 bg-white rounded border border-gray-200">
+                            <strong class="text-purple-700">Eco-Friendly:</strong>
+                            <p class="mt-1">"Nature-inspired greens and earth tones. Organic, sustainable, calm atmosphere."</p>
+                        </div>
+                    </div>
                 </div>
-
-                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
-                    <p class="text-sm text-blue-800">
-                        <i class="fas fa-info-circle mr-2"></i>
-                        <strong>Tip:</strong> Include details like color preferences, font styles, and the mood you want to convey.
-                    </p>
-                </div>
-
-                <div class="flex justify-between items-center">
-                    <a href="{{ url_for('themes.create_theme') }}" class="text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-arrow-left mr-1"></i>Back
-                    </a>
-                    <button type="submit" class="vintage-button">
-                        <i class="fas fa-wand-magic mr-2"></i>Generate Theme
-                    </button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
+
+<script>
+// Add loading state to form submission
+document.getElementById('aiThemeForm').addEventListener('submit', function(e) {
+    const submitBtn = this.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>AI is designing your theme...';
+});
+</script>
 {% endblock %}

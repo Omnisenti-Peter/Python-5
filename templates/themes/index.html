@@ -2,50 +2,198 @@
 
 {% block title %}Themes - Opinian{% endblock %}
 
+{% set breadcrumbs = make_breadcrumbs(
+    ('Home', url_for('index')),
+    ('Theme Studio', None)
+) %}
+
 {% block content %}
 <div class="container mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-8">
-        <div>
-            <h1 class="text-4xl font-bold mb-2">
-                <i class="fas fa-palette mr-3 text-purple-600"></i>Theme Management
-            </h1>
-            <p class="text-gray-600">Customize your organization's appearance</p>
+    <!-- Professional Header -->
+    <div class="mb-10">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-5xl font-bold mb-3 text-gray-900">
+                    <i class="fas fa-palette mr-3 text-indigo-600"></i>Theme Studio
+                </h1>
+                <p class="text-lg text-gray-600">Design, customize, and deploy professional themes for your organization</p>
+            </div>
         </div>
-        <a href="{{ url_for('themes.create_theme') }}" class="vintage-button">
-            <i class="fas fa-plus mr-2"></i>Create New Theme
-        </a>
+    </div>
+
+    <!-- Theme Creation Options - Professional Cards -->
+    <div class="mb-12">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">
+            <i class="fas fa-plus-circle mr-2 text-indigo-600"></i>Create New Theme
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Manual Theme Creation -->
+            <div class="group vintage-card p-6 hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-blue-400">
+                <div class="text-center mb-4">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full mb-4 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-sliders-h text-3xl text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Manual Design</h3>
+                    <p class="text-sm text-gray-600 mb-4">Full control over every aspect - colors, fonts, spacing, and custom CSS</p>
+                </div>
+                <ul class="text-sm text-gray-600 mb-6 space-y-2">
+                    <li><i class="fas fa-check text-green-600 mr-2"></i>Precise color control</li>
+                    <li><i class="fas fa-check text-green-600 mr-2"></i>Custom CSS support</li>
+                    <li><i class="fas fa-check text-green-600 mr-2"></i>Live preview</li>
+                </ul>
+                <a href="{{ url_for('themes.create_theme') }}"
+                   class="block w-full text-center px-4 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition shadow-md">
+                    <i class="fas fa-brush mr-2"></i>Start Manual Design
+                </a>
+            </div>
+
+            <!-- AI-Assisted Theme Creation -->
+            <div class="group vintage-card p-6 hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-purple-400">
+                <div class="text-center mb-4">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full mb-4 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-wand-magic-sparkles text-3xl text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">AI Assistant</h3>
+                    <p class="text-sm text-gray-600 mb-4">Describe your vision, let AI generate intelligent color schemes and styling</p>
+                </div>
+                <ul class="text-sm text-gray-600 mb-6 space-y-2">
+                    <li><i class="fas fa-check text-green-600 mr-2"></i>Smart color palettes</li>
+                    <li><i class="fas fa-check text-green-600 mr-2"></i>Context-aware design</li>
+                    <li><i class="fas fa-check text-green-600 mr-2"></i>Refinable suggestions</li>
+                </ul>
+                <a href="{{ url_for('themes.ai_create_theme') }}"
+                   class="block w-full text-center px-4 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition shadow-md">
+                    <i class="fas fa-robot mr-2"></i>Use AI Assistant
+                </a>
+            </div>
+
+            <!-- Visual Builder -->
+            <div class="group vintage-card p-6 hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-green-400">
+                <div class="text-center mb-4">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-500 to-green-700 rounded-full mb-4 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-th-large text-3xl text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Visual Builder</h3>
+                    <p class="text-sm text-gray-600 mb-4">Drag-and-drop interface for creating complex layouts visually</p>
+                </div>
+                <ul class="text-sm text-gray-600 mb-6 space-y-2">
+                    <li><i class="fas fa-check text-green-600 mr-2"></i>No coding required</li>
+                    <li><i class="fas fa-check text-green-600 mr-2"></i>Component library</li>
+                    <li><i class="fas fa-check text-green-600 mr-2"></i>Real-time editing</li>
+                </ul>
+                <a href="{{ url_for('themes.visual_builder') }}"
+                   class="block w-full text-center px-4 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition shadow-md">
+                    <i class="fas fa-magic mr-2"></i>Open Visual Builder
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Existing Themes Section -->
+    <div class="mb-6 border-t-2 border-gray-200 pt-8">
+        <h2 class="text-3xl font-bold text-gray-900 mb-2">
+            <i class="fas fa-folder-open mr-2 text-indigo-600"></i>Your Themes
+        </h2>
+        <p class="text-gray-600">Manage and apply your organization's themes</p>
     </div>
 
     {% if themes %}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for theme in themes %}
-        <div class="vintage-card overflow-hidden">
-            <div class="p-6">
-                <h3 class="text-xl font-bold mb-2">{{ theme.name }}</h3>
-                <p class="text-gray-600 text-sm mb-4">{{ theme.description or 'No description' }}</p>
+        <div class="group vintage-card overflow-hidden hover:shadow-2xl transition-all duration-300 border-l-4
+                    {% if theme.is_active %}border-green-500{% else %}border-gray-300{% endif %}">
 
-                {% if theme.is_active %}
-                <span class="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold mb-4">
-                    <i class="fas fa-check-circle mr-1"></i>Active
-                </span>
-                {% endif %}
+            <!-- Theme Header -->
+            <div class="bg-gradient-to-br from-gray-50 to-gray-100 p-4 border-b border-gray-200">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="text-xl font-bold text-gray-900">{{ theme.name }}</h3>
+                    {% if theme.theme_type %}
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold
+                           {% if theme.theme_type == 'visual' %}bg-purple-100 text-purple-700 border border-purple-300
+                           {% elif theme.theme_type == 'ai_generated' %}bg-indigo-100 text-indigo-700 border border-indigo-300
+                           {% else %}bg-blue-100 text-blue-700 border border-blue-300{% endif %}">
+                        {% if theme.theme_type == 'visual' %}<i class="fas fa-magic mr-1"></i>Visual
+                        {% elif theme.theme_type == 'ai_generated' %}<i class="fas fa-brain mr-1"></i>AI
+                        {% else %}<i class="fas fa-sliders-h mr-1"></i>Manual{% endif %}
+                    </span>
+                    {% endif %}
+                </div>
+                <p class="text-gray-600 text-sm line-clamp-2">{{ theme.description or 'No description provided' }}</p>
+            </div>
 
-                <div class="flex justify-between items-center mt-4">
-                    <div class="flex space-x-2">
+            <!-- Theme Body -->
+            <div class="p-5">
+                <!-- Status & Metadata -->
+                <div class="flex flex-wrap items-center gap-2 mb-4">
+                    {% if theme.is_active %}
+                    <span class="inline-flex items-center px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-xs font-bold border border-green-300">
+                        <i class="fas fa-check-circle mr-1.5"></i>Active Theme
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold">
+                        <i class="fas fa-circle mr-1.5"></i>Inactive
+                    </span>
+                    {% endif %}
+                    <span class="inline-flex items-center px-2.5 py-1 bg-gray-50 text-gray-700 rounded text-xs border border-gray-200">
+                        <i class="fas fa-user mr-1.5"></i>{{ theme.creator_name or 'Unknown' }}
+                    </span>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="space-y-2">
+                    <!-- Edit Options -->
+                    <div class="flex gap-2">
+                        <!-- Manual Edit Button (Always Available) -->
                         <a href="{{ url_for('themes.edit_theme', theme_id=theme.id) }}"
-                           class="text-blue-600 hover:text-blue-800" title="Edit">
-                            <i class="fas fa-edit"></i>
+                           class="flex-1 text-center px-3 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-semibold shadow-sm hover:shadow-md"
+                           title="Edit theme settings manually">
+                            <i class="fas fa-sliders-h mr-1"></i>Manual Edit
                         </a>
-                        <a href="{{ url_for('themes.preview_theme', theme_id=theme.id) }}"
-                           class="text-green-600 hover:text-green-800" title="Preview">
+
+                        <!-- Visual Builder Button (Always Available) -->
+                        <a href="{{ url_for('themes.visual_builder', theme_id=theme.id) }}"
+                           class="flex-1 text-center px-3 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all text-sm font-semibold shadow-sm hover:shadow-md"
+                           title="Edit theme in visual builder">
+                            <i class="fas fa-magic mr-1"></i>Visual
+                        </a>
+
+                        <!-- Preview Button -->
+                        {% if theme.theme_type == 'visual' or theme.gjs_data %}
+                        <a href="{{ url_for('themes.live_preview', theme_id=theme.id) }}" target="_blank"
+                           class="px-3 py-2.5 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-all text-sm font-semibold shadow-sm hover:shadow-md"
+                           title="Preview theme">
                             <i class="fas fa-eye"></i>
                         </a>
+                        {% else %}
+                        <a href="{{ url_for('themes.preview_theme', theme_id=theme.id) }}"
+                           class="px-3 py-2.5 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-all text-sm font-semibold shadow-sm hover:shadow-md"
+                           title="Preview theme">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        {% endif %}
                     </div>
-                    <form method="POST" action="{{ url_for('themes.apply_theme', theme_id=theme.id) }}" class="inline">
-                        <button type="submit" class="vintage-button text-sm py-1 px-3">
-                            Apply
+
+                    <!-- Apply & Delete -->
+                    <div class="flex gap-2">
+                        {% if not theme.is_active %}
+                        <form method="POST" action="{{ url_for('themes.apply_theme', theme_id=theme.id) }}" class="flex-1">
+                            <button type="submit" class="w-full px-3 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all text-sm font-semibold shadow-sm hover:shadow-md">
+                                <i class="fas fa-check-circle mr-1"></i>Apply Theme
+                            </button>
+                        </form>
+                        {% else %}
+                        <div class="flex-1 px-3 py-2.5 bg-green-100 text-green-800 rounded-lg text-center text-sm font-semibold border border-green-300">
+                            <i class="fas fa-shield-alt mr-1"></i>Currently Active
+                        </div>
+                        {% endif %}
+
+                        <button onclick="deleteTheme({{ theme.id }}, '{{ theme.name }}')"
+                                class="px-3 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all text-sm font-semibold shadow-sm hover:shadow-md"
+                                title="Delete theme">
+                            <i class="fas fa-trash-alt"></i>
                         </button>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -55,11 +203,41 @@
     <div class="vintage-card p-12 text-center">
         <i class="fas fa-palette text-6xl text-gray-300 mb-4"></i>
         <h3 class="text-xl font-semibold text-gray-600 mb-2">No themes yet</h3>
-        <p class="text-gray-500 mb-4">Create your first custom theme</p>
-        <a href="{{ url_for('themes.create_theme') }}" class="vintage-button inline-block">
-            <i class="fas fa-plus mr-2"></i>Create Theme
+        <p class="text-gray-500 mb-4">Create your first custom theme using our powerful visual builder</p>
+        <a href="{{ url_for('themes.visual_builder') }}" class="vintage-button inline-block">
+            <i class="fas fa-magic mr-2"></i>Start Building
         </a>
     </div>
     {% endif %}
 </div>
+
+<script>
+// Delete theme function
+async function deleteTheme(themeId, themeName) {
+    if (!confirm(`Are you sure you want to delete the theme "${themeName}"? This action cannot be undone.`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/themes/delete/${themeId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert('Theme deleted successfully!');
+            window.location.reload();
+        } else {
+            alert('Error deleting theme: ' + result.message);
+        }
+    } catch (error) {
+        alert('Error deleting theme: ' + error.message);
+    }
+}
+</script>
+
 {% endblock %}

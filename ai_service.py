@@ -328,6 +328,178 @@ Start directly with <h2> and end with the last </p> tag."""
 
         return content
 
+    def generate_theme_design(self, description):
+        """
+        Generate theme design based on user description
+
+        Args:
+            description (str): User's description of desired theme
+
+        Returns:
+            dict: Theme configuration with colors, fonts, and styling
+        """
+        if not self.client:
+            return self._generate_fallback_theme(description)
+
+        try:
+            system_prompt = """You are a professional UI/UX designer and color theory expert.
+Generate a complete theme configuration based on the user's description.
+
+You must respond with ONLY valid JSON in this exact format (no markdown, no code blocks, no extra text):
+{
+    "name": "Suggested Theme Name",
+    "description": "Brief description of the theme",
+    "css_variables": {
+        "primary_color": "#hexcode",
+        "secondary_color": "#hexcode",
+        "accent_color": "#hexcode",
+        "background_color": "#hexcode",
+        "text_color": "#hexcode",
+        "heading_font": "Font Name",
+        "body_font": "Font Name",
+        "border_radius": "8px",
+        "shadow_strength": "0.3"
+    },
+    "custom_css": "/* Optional custom CSS */",
+    "design_notes": "Brief explanation of color choices and design rationale"
+}
+
+Guidelines:
+- Choose colors that work well together (consider contrast, accessibility, color harmony)
+- Ensure text_color has good contrast against background_color
+- primary_color should be bold and attention-grabbing
+- secondary_color should complement primary
+- Select professional web fonts (Google Fonts compatible)
+- border_radius: 0-16px range
+- shadow_strength: 0.1-0.5 range
+- Make design_notes explain your color and font choices
+
+Respond with ONLY the JSON object, nothing else."""
+
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Create a theme design for: {description}"}
+                ],
+                max_tokens=800,
+                temperature=0.7,
+            )
+
+            theme_json = response.choices[0].message.content.strip()
+
+            # Clean up response - remove markdown code blocks if present
+            import re
+            theme_json = re.sub(r'^```json\s*', '', theme_json)
+            theme_json = re.sub(r'^```\s*', '', theme_json)
+            theme_json = re.sub(r'\s*```$', '', theme_json)
+            theme_json = theme_json.strip()
+
+            # Parse JSON
+            import json
+            theme_config = json.loads(theme_json)
+
+            logger.info(f"Successfully generated theme design for: {description[:50]}...")
+
+            return {
+                'success': True,
+                'theme': theme_config,
+                'model': self.model
+            }
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse theme JSON: {e}")
+            logger.debug(f"Raw response: {theme_json}")
+            return {
+                'success': False,
+                'error': 'Failed to parse AI response',
+                'message': 'AI generated invalid format. Using fallback theme.'
+            }
+        except Exception as e:
+            logger.error(f"Error generating theme design: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'message': 'Failed to generate theme design. Using fallback.'
+            }
+
+    def _generate_fallback_theme(self, description):
+        """
+        Generate fallback theme when OpenAI is not available
+
+        Args:
+            description (str): User's theme description
+
+        Returns:
+            dict: Fallback theme configuration
+        """
+        # Analyze description for keywords to provide better fallback
+        description_lower = description.lower()
+
+        # Default professional theme
+        theme = {
+            'name': 'Professional Theme',
+            'description': f'Theme based on: {description[:100]}',
+            'css_variables': {
+                'primary_color': '#2563eb',  # Blue
+                'secondary_color': '#7c3aed',  # Purple
+                'accent_color': '#059669',  # Green
+                'background_color': '#ffffff',
+                'text_color': '#1f2937',
+                'heading_font': 'Inter',
+                'body_font': 'Open Sans',
+                'border_radius': '8px',
+                'shadow_strength': '0.3'
+            },
+            'custom_css': '/* AI-powered theme generation requires OpenAI API key */',
+            'design_notes': 'Fallback theme: Configure OPENAI_API_KEY for AI-generated themes.'
+        }
+
+        # Adjust based on keywords
+        if any(word in description_lower for word in ['dark', 'noir', 'night', 'black']):
+            theme['css_variables'].update({
+                'primary_color': '#1e293b',
+                'secondary_color': '#64748b',
+                'accent_color': '#f59e0b',
+                'background_color': '#0f172a',
+                'text_color': '#f1f5f9'
+            })
+            theme['name'] = 'Dark Professional Theme'
+        elif any(word in description_lower for word in ['bright', 'light', 'minimal', 'clean']):
+            theme['css_variables'].update({
+                'primary_color': '#0284c7',
+                'secondary_color': '#0ea5e9',
+                'accent_color': '#f97316',
+                'background_color': '#f8fafc',
+                'text_color': '#0f172a'
+            })
+            theme['name'] = 'Light Minimal Theme'
+        elif any(word in description_lower for word in ['warm', 'orange', 'autumn', 'sunset']):
+            theme['css_variables'].update({
+                'primary_color': '#ea580c',
+                'secondary_color': '#f59e0b',
+                'accent_color': '#dc2626',
+                'background_color': '#fffbeb',
+                'text_color': '#78350f'
+            })
+            theme['name'] = 'Warm Autumn Theme'
+        elif any(word in description_lower for word in ['ocean', 'blue', 'sea', 'water']):
+            theme['css_variables'].update({
+                'primary_color': '#0891b2',
+                'secondary_color': '#06b6d4',
+                'accent_color': '#0284c7',
+                'background_color': '#ecfeff',
+                'text_color': '#164e63'
+            })
+            theme['name'] = 'Ocean Blue Theme'
+
+        return {
+            'success': True,
+            'theme': theme,
+            'is_fallback': True,
+            'message': 'OpenAI API not configured. Using keyword-based fallback theme.'
+        }
+
     def _generate_fallback_content(self, prompt, content_type):
         """
         Generate fallback content when OpenAI is not available

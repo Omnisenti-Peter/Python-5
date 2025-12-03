@@ -110,6 +110,12 @@ def create_tables():
                 description TEXT,
                 css_variables JSONB,
                 custom_css TEXT,
+                gjs_data JSONB DEFAULT NULL,
+                gjs_assets JSONB DEFAULT '[]'::jsonb,
+                html_export TEXT DEFAULT NULL,
+                react_export TEXT DEFAULT NULL,
+                theme_type VARCHAR(50) DEFAULT 'manual',
+                ai_prompt TEXT DEFAULT NULL,
                 created_by INTEGER,
                 group_id INTEGER REFERENCES groups(id),
                 is_active BOOLEAN DEFAULT TRUE,
@@ -482,7 +488,10 @@ def create_indexes():
             "CREATE INDEX IF NOT EXISTS idx_blog_posts_published ON blog_posts(is_published)",
             "CREATE INDEX IF NOT EXISTS idx_pages_group_id ON pages(group_id)",
             "CREATE INDEX IF NOT EXISTS idx_user_activity_logs_user_id ON user_activity_logs(user_id)",
-            "CREATE INDEX IF NOT EXISTS idx_user_activity_logs_created_at ON user_activity_logs(created_at)"
+            "CREATE INDEX IF NOT EXISTS idx_user_activity_logs_created_at ON user_activity_logs(created_at)",
+            "CREATE INDEX IF NOT EXISTS idx_themes_group_id ON themes(group_id)",
+            "CREATE INDEX IF NOT EXISTS idx_themes_theme_type ON themes(theme_type)",
+            "CREATE INDEX IF NOT EXISTS idx_themes_created_by ON themes(created_by)"
         ]
         
         for index in indexes:

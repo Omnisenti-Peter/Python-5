@@ -2,6 +2,11 @@
 
 {% block title %}Admin Dashboard - Opinian{% endblock %}
 
+{% set breadcrumbs = make_breadcrumbs(
+    ('Home', url_for('index')),
+    ('Admin Dashboard', None)
+) %}
+
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <!-- Header -->

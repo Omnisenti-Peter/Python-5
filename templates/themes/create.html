@@ -2,42 +2,34 @@
 
 {% block title %}Create Theme - Opinian{% endblock %}
 
+{% set breadcrumbs = make_breadcrumbs(
+    ('Home', url_for('index')),
+    ('Themes', url_for('themes.index')),
+    ('Create Theme', None)
+) %}
+
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-3xl mx-auto">
         <!-- Header -->
         <div class="mb-8">
             <h1 class="text-4xl font-bold mb-2">
-                <i class="fas fa-palette mr-3 text-purple-600"></i>Create Custom Theme
+                <i class="fas fa-file-alt mr-3 text-blue-600"></i>Step 1: Basic Theme Info
             </h1>
-            <p class="text-gray-600">Design a unique theme for your organization</p>
+            <p class="text-gray-600">Fill in basic information, then customize in Visual Builder</p>
         </div>
 
-        <!-- Theme Creation Options -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <!-- Manual Theme Creation -->
-            <div class="vintage-card p-6 hover:shadow-2xl transition-shadow cursor-pointer border-2 border-transparent hover:border-yellow-600"
-                 onclick="document.getElementById('manual-form').scrollIntoView({behavior: 'smooth'})">
-                <div class="text-center">
-                    <i class="fas fa-code text-5xl text-blue-600 mb-4"></i>
-                    <h3 class="text-xl font-bold mb-2">Manual Creation</h3>
-                    <p class="text-gray-600 text-sm">
-                        Create a theme using custom CSS and color variables
+        <!-- Workflow Progress -->
+        <div class="mb-8 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+            <div class="flex items-center">
+                <i class="fas fa-info-circle text-blue-500 text-2xl mr-3"></i>
+                <div>
+                    <h3 class="font-bold text-blue-800">Integrated Workflow (Per REQUIREMENTS.MD)</h3>
+                    <p class="text-sm text-blue-700">
+                        After saving, you'll be redirected to the <strong>Visual Builder</strong> to customize your theme with drag-and-drop components.
                     </p>
                 </div>
             </div>
-
-            <!-- AI-Powered Theme Creation -->
-            <a href="{{ url_for('themes.ai_create_theme') }}"
-               class="vintage-card p-6 hover:shadow-2xl transition-shadow border-2 border-transparent hover:border-yellow-600 block">
-                <div class="text-center">
-                    <i class="fas fa-magic text-5xl text-purple-600 mb-4"></i>
-                    <h3 class="text-xl font-bold mb-2">AI-Powered Creation</h3>
-                    <p class="text-gray-600 text-sm">
-                        Let AI generate a theme from your description
-                    </p>
-                </div>
-            </a>
         </div>
 
         <!-- Manual Theme Creation Form -->

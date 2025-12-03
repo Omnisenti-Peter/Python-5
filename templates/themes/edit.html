@@ -2,52 +2,293 @@
 
 {% block title %}Edit Theme - Opinian{% endblock %}
 
+{% set breadcrumbs = make_breadcrumbs(
+    ('Home', url_for('index')),
+    ('Themes', url_for('themes.index')),
+    ('Edit Theme', None)
+) %}
+
 {% block content %}
 <div class="container mx-auto px-4 py-8">
-    <div class="max-w-3xl mx-auto">
+    <div class="max-w-4xl mx-auto">
+        <!-- Professional Header -->
         <div class="mb-8">
-            <h1 class="text-4xl font-bold mb-2">
-                <i class="fas fa-edit mr-3 text-blue-600"></i>Edit Theme
+            <h1 class="text-4xl font-bold mb-2 text-gray-900">
+                <i class="fas fa-sliders-h mr-3 text-blue-600"></i>Edit Theme: {{ theme.name }}
             </h1>
-            <p class="text-gray-600">Modify your theme settings</p>
+            <p class="text-gray-600">Manually configure colors, fonts, and styling for your theme</p>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="mb-6 flex gap-2">
+            <a href="{{ url_for('themes.edit_theme', theme_id=theme.id) }}"
+               class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold">
+                <i class="fas fa-sliders-h mr-2"></i>Manual Edit
+            </a>
+            <a href="{{ url_for('themes.visual_builder', theme_id=theme.id) }}"
+               class="px-4 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-lg font-semibold">
+                <i class="fas fa-magic mr-2"></i>Visual Builder
+            </a>
         </div>
 
         <div class="vintage-card p-8">
             <form method="POST">
-                <div class="mb-6">
-                    <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">
-                        Theme Name *
-                    </label>
-                    <input type="text" id="name" name="name" required
-                           value="{{ theme.name }}" class="vintage-input w-full">
+                <!-- Basic Info -->
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-900">
+                        <i class="fas fa-info-circle mr-2 text-blue-600"></i>Basic Information
+                    </h2>
+
+                    <div class="mb-6">
+                        <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-tag mr-1"></i>Theme Name *
+                        </label>
+                        <input type="text" id="name" name="name" required
+                               value="{{ theme.name }}" class="vintage-input w-full">
+                    </div>
+
+                    <div class="mb-6">
+                        <label for="description" class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-align-left mr-1"></i>Description
+                        </label>
+                        <textarea id="description" name="description" rows="3"
+                                  class="vintage-input w-full">{{ theme.description or '' }}</textarea>
+                    </div>
                 </div>
 
-                <div class="mb-6">
-                    <label for="description" class="block text-sm font-semibold text-gray-700 mb-2">
-                        Description
-                    </label>
-                    <textarea id="description" name="description" rows="3"
-                              class="vintage-input w-full">{{ theme.description or '' }}</textarea>
+                <!-- Color Variables -->
+                {% set css_vars = theme.css_variables|tojson|safe if theme.css_variables else '{}' %}
+                {% set vars_dict = css_vars|tojson|safe %}
+
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-900">
+                        <i class="fas fa-fill-drip mr-2 text-purple-600"></i>Color Palette
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Primary Color -->
+                        <div>
+                            <label for="primary_color" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Primary Color
+                            </label>
+                            <div class="flex items-center space-x-2">
+                                <input type="color" id="primary_color" name="primary_color"
+                                       value="{{ theme.css_variables.primary_color if theme.css_variables else '#1a1a1a' }}"
+                                       class="h-12 w-20 border-2 border-gray-300 rounded cursor-pointer">
+                                <input type="text" value="{{ theme.css_variables.primary_color if theme.css_variables else '#1a1a1a' }}"
+                                       class="vintage-input flex-1" readonly id="primary_color_text">
+                            </div>
+                        </div>
+
+                        <!-- Secondary Color -->
+                        <div>
+                            <label for="secondary_color" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Secondary Color
+                            </label>
+                            <div class="flex items-center space-x-2">
+                                <input type="color" id="secondary_color" name="secondary_color"
+                                       value="{{ theme.css_variables.secondary_color if theme.css_variables else '#d4af37' }}"
+                                       class="h-12 w-20 border-2 border-gray-300 rounded cursor-pointer">
+                                <input type="text" value="{{ theme.css_variables.secondary_color if theme.css_variables else '#d4af37' }}"
+                                       class="vintage-input flex-1" readonly id="secondary_color_text">
+                            </div>
+                        </div>
+
+                        <!-- Accent Color -->
+                        <div>
+                            <label for="accent_color" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Accent Color
+                            </label>
+                            <div class="flex items-center space-x-2">
+                                <input type="color" id="accent_color" name="accent_color"
+                                       value="{{ theme.css_variables.accent_color if theme.css_variables else '#8b4513' }}"
+                                       class="h-12 w-20 border-2 border-gray-300 rounded cursor-pointer">
+                                <input type="text" value="{{ theme.css_variables.accent_color if theme.css_variables else '#8b4513' }}"
+                                       class="vintage-input flex-1" readonly id="accent_color_text">
+                            </div>
+                        </div>
+
+                        <!-- Background Color -->
+                        <div>
+                            <label for="background_color" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Background Color
+                            </label>
+                            <div class="flex items-center space-x-2">
+                                <input type="color" id="background_color" name="background_color"
+                                       value="{{ theme.css_variables.background_color if theme.css_variables else '#f5f5dc' }}"
+                                       class="h-12 w-20 border-2 border-gray-300 rounded cursor-pointer">
+                                <input type="text" value="{{ theme.css_variables.background_color if theme.css_variables else '#f5f5dc' }}"
+                                       class="vintage-input flex-1" readonly id="background_color_text">
+                            </div>
+                        </div>
+
+                        <!-- Text Color -->
+                        <div>
+                            <label for="text_color" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Text Color
+                            </label>
+                            <div class="flex items-center space-x-2">
+                                <input type="color" id="text_color" name="text_color"
+                                       value="{{ theme.css_variables.text_color if theme.css_variables else '#2c2c2c' }}"
+                                       class="h-12 w-20 border-2 border-gray-300 rounded cursor-pointer">
+                                <input type="text" value="{{ theme.css_variables.text_color if theme.css_variables else '#2c2c2c' }}"
+                                       class="vintage-input flex-1" readonly id="text_color_text">
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="mb-6">
-                    <label for="custom_css" class="block text-sm font-semibold text-gray-700 mb-2">
-                        Custom CSS
-                    </label>
-                    <textarea id="custom_css" name="custom_css" rows="10"
-                              class="vintage-input w-full font-mono text-sm">{{ theme.custom_css or '' }}</textarea>
+                <!-- Typography -->
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-900">
+                        <i class="fas fa-font mr-2 text-indigo-600"></i>Typography
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="heading_font" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Heading Font
+                            </label>
+                            <select id="heading_font" name="heading_font" class="vintage-input w-full">
+                                <option value="Playfair Display" {{ 'selected' if theme.css_variables and theme.css_variables.heading_font == 'Playfair Display' else '' }}>Playfair Display</option>
+                                <option value="Merriweather" {{ 'selected' if theme.css_variables and theme.css_variables.heading_font == 'Merriweather' else '' }}>Merriweather</option>
+                                <option value="Lora" {{ 'selected' if theme.css_variables and theme.css_variables.heading_font == 'Lora' else '' }}>Lora</option>
+                                <option value="Inter" {{ 'selected' if theme.css_variables and theme.css_variables.heading_font == 'Inter' else '' }}>Inter</option>
+                                <option value="Poppins" {{ 'selected' if theme.css_variables and theme.css_variables.heading_font == 'Poppins' else '' }}>Poppins</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="body_font" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Body Font
+                            </label>
+                            <select id="body_font" name="body_font" class="vintage-input w-full">
+                                <option value="Source Sans Pro" {{ 'selected' if theme.css_variables and theme.css_variables.body_font == 'Source Sans Pro' else '' }}>Source Sans Pro</option>
+                                <option value="Open Sans" {{ 'selected' if theme.css_variables and theme.css_variables.body_font == 'Open Sans' else '' }}>Open Sans</option>
+                                <option value="Roboto" {{ 'selected' if theme.css_variables and theme.css_variables.body_font == 'Roboto' else '' }}>Roboto</option>
+                                <option value="Lato" {{ 'selected' if theme.css_variables and theme.css_variables.body_font == 'Lato' else '' }}>Lato</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="flex justify-between items-center">
-                    <a href="{{ url_for('themes.index') }}" class="text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-arrow-left mr-1"></i>Back to Themes
+                <!-- Styling Options -->
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-900">
+                        <i class="fas fa-paint-brush mr-2 text-green-600"></i>Styling Options
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="border_radius" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Border Radius
+                            </label>
+                            <input type="text" id="border_radius" name="border_radius"
+                                   value="{{ theme.css_variables.border_radius if theme.css_variables else '8px' }}"
+                                   class="vintage-input w-full" placeholder="e.g., 8px">
+                        </div>
+                        <div>
+                            <label for="shadow_strength" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Shadow Strength (0.1 - 0.5)
+                            </label>
+                            <input type="text" id="shadow_strength" name="shadow_strength"
+                                   value="{{ theme.css_variables.shadow_strength if theme.css_variables else '0.3' }}"
+                                   class="vintage-input w-full" placeholder="e.g., 0.3">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom CSS -->
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-900">
+                        <i class="fas fa-code mr-2 text-red-600"></i>Custom CSS (Advanced)
+                    </h2>
+                    <textarea id="custom_css" name="custom_css" rows="12"
+                              class="vintage-input w-full font-mono text-sm"
+                              placeholder="/* Add custom CSS here */&#10;.custom-class {&#10;    color: #yourcolor;&#10;}">{{ theme.custom_css or '' }}</textarea>
+                    <p class="text-xs text-gray-500 mt-2">
+                        <i class="fas fa-info-circle mr-1"></i>Advanced users can override default styles with custom CSS
+                    </p>
+                </div>
+
+                <!-- Live Preview -->
+                <div class="mb-8 p-6 border-2 border-gray-200 rounded-lg" id="theme-preview">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Live Preview</h3>
+                    <div class="space-y-3" style="background-color: var(--bg-preview, #f5f5dc); padding: 1.5rem; border-radius: 8px;">
+                        <h1 style="color: var(--primary-preview, #1a1a1a); font-family: var(--heading-font, 'Playfair Display'), serif; font-size: 2rem;">
+                            Sample Heading
+                        </h1>
+                        <p style="color: var(--text-preview, #2c2c2c); font-family: var(--body-font, 'Source Sans Pro'), sans-serif;">
+                            This is a sample paragraph showing how your body text will look with the selected colors and fonts.
+                        </p>
+                        <button type="button"
+                                style="background: var(--secondary-preview, #d4af37); color: var(--primary-preview, #1a1a1a); padding: 0.75rem 1.5rem; border-radius: var(--border-radius, 8px); font-weight: 600; border: none; cursor: pointer;">
+                            Sample Button
+                        </button>
+                        <div style="background: var(--accent-preview, #8b4513); color: white; padding: 1rem; border-radius: var(--border-radius, 8px); margin-top: 1rem;">
+                            <strong>Accent Element:</strong> This shows how accent colors work in your theme.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex justify-between items-center pt-6 border-t border-gray-200">
+                    <a href="{{ url_for('themes.index') }}" class="text-gray-600 hover:text-gray-800 font-semibold">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Themes
                     </a>
-                    <button type="submit" class="vintage-button">
-                        <i class="fas fa-save mr-2"></i>Update Theme
-                    </button>
+                    <div class="flex gap-3">
+                        <a href="{{ url_for('themes.visual_builder', theme_id=theme.id) }}"
+                           class="px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition">
+                            <i class="fas fa-magic mr-2"></i>Open Visual Builder
+                        </a>
+                        <button type="submit" class="px-8 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition shadow-md">
+                            <i class="fas fa-save mr-2"></i>Save Changes
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+// Update color preview in real-time
+const colorInputs = ['primary_color', 'secondary_color', 'accent_color', 'background_color', 'text_color'];
+
+colorInputs.forEach(id => {
+    const colorInput = document.getElementById(id);
+    const textInput = document.getElementById(id + '_text');
+
+    colorInput.addEventListener('input', (e) => {
+        textInput.value = e.target.value;
+        updatePreview();
+    });
+});
+
+// Update font and styling previews
+['heading_font', 'body_font', 'border_radius', 'shadow_strength'].forEach(id => {
+    const input = document.getElementById(id);
+    input.addEventListener('change', updatePreview);
+});
+
+function updatePreview() {
+    const preview = document.getElementById('theme-preview');
+    const primary = document.getElementById('primary_color').value;
+    const secondary = document.getElementById('secondary_color').value;
+    const accent = document.getElementById('accent_color').value;
+    const background = document.getElementById('background_color').value;
+    const text = document.getElementById('text_color').value;
+    const headingFont = document.getElementById('heading_font').value;
+    const bodyFont = document.getElementById('body_font').value;
+    const borderRadius = document.getElementById('border_radius').value;
+
+    preview.style.setProperty('--primary-preview', primary);
+    preview.style.setProperty('--secondary-preview', secondary);
+    preview.style.setProperty('--accent-preview', accent);
+    preview.style.setProperty('--bg-preview', background);
+    preview.style.setProperty('--text-preview', text);
+    preview.style.setProperty('--heading-font', headingFont);
+    preview.style.setProperty('--body-font', bodyFont);
+    preview.style.setProperty('--border-radius', borderRadius);
+}
+
+// Initial preview
+updatePreview();
+</script>
 {% endblock %}

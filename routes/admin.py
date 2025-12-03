@@ -151,10 +151,33 @@ def create_user():
         last_name = request.form.get('last_name')
         role_id = request.form.get('role_id')
 
+        # Validate required fields
+        if not username or not email or not password:
+            flash('Username, email, and password are required.', 'danger')
+            return redirect(url_for('admin.create_user'))
+
+        # Validate and convert role_id to integer
+        if not role_id or role_id == '' or role_id == '0':
+            flash('Please select a valid role.', 'danger')
+            return redirect(url_for('admin.create_user'))
+
+        try:
+            role_id = int(role_id)
+        except ValueError:
+            flash('Invalid role selected.', 'danger')
+            return redirect(url_for('admin.create_user'))
+
         # For SuperAdmin, allow selecting group; for Admin, use their group
         if session['user_role'] == 'SuperAdmin':
             group_id = request.form.get('group_id')
-            group_id = int(group_id) if group_id else None
+            if group_id and group_id != '' and group_id != '0':
+                try:
+                    group_id = int(group_id)
+                except ValueError:
+                    flash('Invalid group selected.', 'danger')
+                    return redirect(url_for('admin.create_user'))
+            else:
+                group_id = None
         else:
             group_id = session.get('group_id')
 
@@ -209,7 +232,7 @@ def create_user():
                     role_id, group_id
                 ))
 
-                user_id = cursor.fetchone()[0]
+                user_id = cursor.fetchone()['id']
                 conn.commit()
                 cursor.close()
                 conn.close()
@@ -221,8 +244,15 @@ def create_user():
                 return redirect(url_for('admin.manage_users'))
 
         except Exception as e:
-            flash('Error creating user', 'danger')
-            logger.error(f"Error creating user: {e}")
+            if 'conn' in locals() and conn:
+                conn.rollback()
+                if 'cursor' in locals() and cursor:
+                    cursor.close()
+                conn.close()
+            flash(f'Error creating user: {str(e)}', 'danger')
+            logger.error(f"Error creating user: {type(e).__name__}: {str(e)}")
+            logger.exception("Full traceback:")
+            return redirect(url_for('admin.create_user'))
 
     try:
         conn = get_db_connection()
@@ -538,9 +568,19 @@ def edit_group(group_id):
                 name = request.form.get('name')
                 description = request.form.get('description')
                 admin_user_id = request.form.get('admin_user_id')
+                theme_id = request.form.get('theme_id')
                 contact_page_content = request.form.get('contact_page_content')
                 about_page_content = request.form.get('about_page_content')
                 is_active = request.form.get('is_active') == 'on'
+
+                # Convert theme_id to int or None
+                if theme_id and theme_id != '':
+                    try:
+                        theme_id = int(theme_id)
+                    except ValueError:
+                        theme_id = None
+                else:
+                    theme_id = None
 
                 # Check if name is taken by another group
                 cursor.execute("SELECT id FROM groups WHERE name = %s AND id != %s", (name, group_id))
@@ -550,11 +590,11 @@ def edit_group(group_id):
                     # Update group
                     cursor.execute("""
                         UPDATE groups
-                        SET name = %s, description = %s, admin_user_id = %s,
+                        SET name = %s, description = %s, admin_user_id = %s, theme_id = %s,
                             contact_page_content = %s, about_page_content = %s,
                             is_active = %s, updated_at = %s
                         WHERE id = %s
-                    """, (name, description, admin_user_id if admin_user_id else None,
+                    """, (name, description, admin_user_id if admin_user_id else None, theme_id,
                           contact_page_content, about_page_content, is_active,
                           datetime.utcnow(), group_id))
 

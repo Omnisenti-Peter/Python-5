@@ -2,6 +2,11 @@
 
 {% block title %}Dashboard - Opinian{% endblock %}
 
+{% set breadcrumbs = make_breadcrumbs(
+    ('Home', url_for('index')),
+    ('Dashboard', None)
+) %}
+
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8">
     <div class="container mx-auto px-4">
@@ -145,7 +150,7 @@
                         {% endif %}
                         
                         {% if user_role in ['SuperAdmin', 'Admin'] %}
-                            <a href="{{ url_for('themes.create_theme') }}" class="vintage-button text-center block">
+                            <a href="{{ url_for('themes.index') }}" class="vintage-button text-center block">
                                 <i class="fas fa-palette mr-2"></i>Design Theme
                             </a>
                             
