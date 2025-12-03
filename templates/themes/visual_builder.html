@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Theme Builder - Opinian</title>
+
+    <!-- GrapesJS Core CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Source Sans Pro', sans-serif;
+            overflow: hidden;
+        }
+
+        /* Header Styling */
+        .theme-builder-header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+            padding: 1rem;
+            border-bottom: 3px solid #d4af37;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-title {
+            color: #d4af37;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .header-title i {
+            margin-right: 0.5rem;
+        }
+
+        .theme-name-input {
+            padding: 0.5rem 1rem;
+            background: rgba(245, 245, 220, 0.1);
+            border: 2px solid #d4af37;
+            border-radius: 8px;
+            color: #f5f5dc;
+            font-size: 1rem;
+            min-width: 250px;
+        }
+
+        .theme-name-input::placeholder {
+            color: rgba(245, 245, 220, 0.5);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: 2px solid #d4af37;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+            color: #d4af37;
+            font-family: 'Source Sans Pro', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background: #d4af37;
+            color: #1a1a1a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+        }
+
+        .btn-success { border-color: #10b981; color: #10b981; }
+        .btn-success:hover { background: #10b981; color: white; }
+
+        .btn-primary { border-color: #3b82f6; color: #3b82f6; }
+        .btn-primary:hover { background: #3b82f6; color: white; }
+
+        .btn-purple { border-color: #a855f7; color: #a855f7; }
+        .btn-purple:hover { background: #a855f7; color: white; }
+
+        .btn-warning { border-color: #f59e0b; color: #f59e0b; }
+        .btn-warning:hover { background: #f59e0b; color: white; }
+
+        .btn-secondary { border-color: #6b7280; color: #6b7280; }
+        .btn-secondary:hover { background: #6b7280; color: white; }
+
+        /* Editor Container */
+        #gjs-editor {
+            height: calc(100vh - 70px);
+            width: 100%;
+            position: relative;
+            overflow: visible !important;
+        }
+
+        /* Ensure GrapesJS panels are visible */
+        .gjs-pn-views-container {
+            display: block !important;
+            height: 100%;
+        }
+
+        .gjs-pn-views {
+            display: flex !important;
+            height: 100%;
+        }
+
+        /* Force blocks panel visibility */
+        .gjs-blocks-c {
+            display: block !important;
+        }
+
+        /* Ensure proper panel widths */
+        .gjs-pn-panel.gjs-pn-views {
+            width: 250px !important;
+            min-width: 250px;
+        }
+
+        .gjs-cv-canvas {
+            flex: 1 !important;
+        }
+
+        /* Make sure panels have proper z-index */
+        .gjs-pn-panel {
+            z-index: 10 !important;
+            position: relative !important;
+        }
+
+        /* Ensure left panel is visible */
+        .gjs-pn-panel.gjs-pn-views-container {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        /* Custom GrapesJS Panel Styling - Vintage Theme */
+        .gjs-one-bg {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%) !important;
+        }
+
+        .gjs-two-color {
+            color: #d4af37 !important;
+        }
+
+        .gjs-three-bg {
+            background: #2c2c2c !important;
+            color: #f5f5dc !important;
+        }
+
+        .gjs-four-color, .gjs-four-color-h:hover {
+            color: #d4af37 !important;
+        }
+
+        /* Panel buttons */
+        .gjs-pn-btn {
+            color: #d4af37 !important;
+            transition: all 0.3s ease;
+        }
+
+        .gjs-pn-btn:hover,
+        .gjs-pn-btn.gjs-pn-active {
+            background: rgba(212, 175, 55, 0.2) !important;
+        }
+
+        .gjs-pn-panel {
+            border: 1px solid #d4af37 !important;
+        }
+
+        /* Blocks */
+        .gjs-block-category .gjs-title {
+            background: #2c2c2c !important;
+            color: #d4af37 !important;
+            font-family: 'Playfair Display', serif;
+            border-bottom: 2px solid #d4af37 !important;
+        }
+
+        .gjs-block {
+            border: 2px solid #8b4513 !important;
+            background: #f5f5dc !important;
+            transition: all 0.3s ease;
+        }
+
+        .gjs-block:hover {
+            border-color: #d4af37 !important;
+            box-shadow: 0 4px 8px rgba(212, 175, 55, 0.4) !important;
+            transform: translateY(-2px);
+        }
+
+        /* Canvas */
+        .gjs-cv-canvas {
+            background: #f5f5dc;
+            border: 2px solid #d4af37;
+        }
+
+        /* Loading indicator */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loading-content {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+            padding: 2rem 3rem;
+            border-radius: 12px;
+            border: 3px solid #d4af37;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(212, 175, 55, 0.3);
+        }
+
+        .loading-spinner {
+            font-size: 3rem;
+            color: #d4af37;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #d4af37;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="theme-builder-header">
+        <div class="header-left">
+            <h1 class="header-title">
+                <i class="fas fa-palette"></i>Visual Theme Builder
+            </h1>
+            <input type="text" id="theme-name" class="theme-name-input"
+                   placeholder="Enter theme name..."
+                   value="{{ theme.name if theme else '' }}">
+        </div>
+
+        <div class="header-actions">
+            <button id="save-theme" class="btn btn-success">
+                <i class="fas fa-save"></i> Save Theme
+            </button>
+            <button id="export-html" class="btn btn-primary">
+                <i class="fas fa-code"></i> Export HTML
+            </button>
+            <button id="export-react" class="btn btn-purple">
+                <i class="fab fa-react"></i> Export React
+            </button>
+            <button id="preview-theme" class="btn btn-warning">
+                <i class="fas fa-eye"></i> Preview
+            </button>
+            <a href="/themes" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Close
+            </a>
+        </div>
+    </div>
+
+    <!-- GrapesJS Editor Container -->
+    <div id="gjs-editor"></div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+            </div>
+            <div class="loading-text">Saving your masterpiece...</div>
+        </div>
+    </div>
+
+    <!-- GrapesJS Core -->
+    <script src="https://unpkg.com/grapesjs"></script>
+
+    <!-- GrapesJS Basic Blocks Plugin -->
+    <script src="https://unpkg.com/grapesjs-blocks-basic"></script>
+
+    <script>
+        // Parse theme data from server
+        const themeId = {{ theme.id if theme else 'null' }};
+        const existingThemeData = {{ (theme.gjs_data | tojson) if theme and theme.gjs_data else '{}' }};
+        const existingAssets = {{ (theme.gjs_assets | tojson) if theme and theme.gjs_assets else '[]' }};
+
+        // Initialize GrapesJS Editor
+        const editor = grapesjs.init({
+            container: '#gjs-editor',
+            fromElement: false,
+            height: '100%',
+            width: 'auto',
+            storageManager: false,
+
+            // Load existing theme components and styles
+            components: existingThemeData.components || '',
+            style: existingThemeData.styles || '',
+
+            // Canvas configuration
+            canvas: {
+                styles: [
+                    'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Sans+Pro:wght@300;400;600;700&display=swap'
+                ]
+            },
+
+            // Device Manager - Responsive Preview
+            deviceManager: {
+                devices: [
+                    {
+                        name: 'Desktop',
+                        width: '',
+                    },
+                    {
+                        name: 'Tablet',
+                        width: '768px',
+                        widthMedia: '992px',
+                    },
+                    {
+                        name: 'Mobile',
+                        width: '320px',
+                        widthMedia: '480px',
+                    }
+                ]
+            },
+
+            // Plugins - Using only basic blocks (other plugins not needed for custom components)
+            plugins: ['gjs-blocks-basic'],
+            pluginsOpts: {
+                'gjs-blocks-basic': {
+                    flexGrid: true,
+                    blocks: ['column1', 'column2', 'column3', 'column3-7', 'text', 'link', 'image', 'video', 'map']
+                }
+            },
+
+            // Asset Manager - File Upload
+            assetManager: {
+                upload: '/media/upload',
+                uploadName: 'file',
+                multiUpload: true,
+                assets: existingAssets,
+                uploadFile: function(e) {
+                    const files = e.dataTransfer ? e.dataTransfer.files : e.target.files;
+                    const formData = new FormData();
+
+                    for (let i = 0; i < files.length; i++) {
+                        formData.append('file', files[i]);
+                    }
+
+                    fetch('/media/upload', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            editor.AssetManager.add({
+                                src: data.url,
+                                name: data.filename
+                            });
+                        } else {
+                            alert('Upload failed: ' + data.error);
+                        }
+                    })
+                    .catch(err => {
+                        alert('Upload error: ' + err.message);
+                    });
+                }
+            },
+
+            // Let GrapesJS use default panels layout
+        });
+
+        // Add custom vintage-themed blocks
+        const blockManager = editor.BlockManager;
+
+        // Vintage Header Block
+        blockManager.add('vintage-header', {
+            label: '<i class="fas fa-heading"></i><div>Vintage Header</div>',
+            category: 'Vintage Components',
+            content: `
+                <header style="background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+                               padding: 3rem 2rem; border-bottom: 5px solid #d4af37;
+                               text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                    <h1 style="color: #d4af37; font-family: 'Playfair Display', serif;
+                               font-size: 3.5rem; font-weight: 900; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+                        Your Elegant Title
+                    </h1>
+                    <p style="color: #f5f5dc; font-family: 'Source Sans Pro', sans-serif;
+                              font-size: 1.2rem; margin-top: 1rem;">
+                        A sophisticated subtitle for your vintage site
+                    </p>
+                </header>
+            `
+        });
+
+        // Art Deco Card Block
+        blockManager.add('art-deco-card', {
+            label: '<i class="fas fa-id-card"></i><div>Art Deco Card</div>',
+            category: 'Vintage Components',
+            content: `
+                <div style="background: #f5f5dc; border: 3px solid #d4af37;
+                           padding: 2rem; margin: 1rem;
+                           box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+                           border-radius: 4px; position: relative;">
+                    <div style="position: absolute; top: -10px; left: 20px;
+                               background: #d4af37; padding: 0.5rem 1rem;
+                               color: #1a1a1a; font-family: 'Playfair Display', serif;
+                               font-weight: 700; font-size: 0.9rem;">
+                        FEATURED
+                    </div>
+                    <h3 style="color: #1a1a1a; font-family: 'Playfair Display', serif;
+                               font-size: 2rem; margin: 1rem 0;">
+                        Card Title
+                    </h3>
+                    <p style="color: #2c2c2c; font-family: 'Source Sans Pro', sans-serif;
+                              line-height: 1.6; margin-bottom: 1.5rem;">
+                        Your elegant content goes here. This Art Deco card brings vintage sophistication to your design.
+                    </p>
+                    <button style="background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+                                   color: #d4af37; padding: 0.75rem 2rem;
+                                   border: 2px solid #d4af37; font-family: 'Playfair Display', serif;
+                                   font-size: 1.1rem; cursor: pointer; transition: all 0.3s;">
+                        Learn More
+                    </button>
+                </div>
+            `
+        });
+
+        // Noir Button Block
+        blockManager.add('noir-button', {
+            label: '<i class="fas fa-hand-pointer"></i><div>Noir Button</div>',
+            category: 'Vintage Components',
+            content: `
+                <button style="background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+                               color: #d4af37; padding: 1rem 2.5rem;
+                               border: 3px solid #d4af37; font-family: 'Playfair Display', serif;
+                               font-size: 1.3rem; font-weight: 700; cursor: pointer;
+                               box-shadow: 0 6px 16px rgba(212, 175, 55, 0.4);
+                               transition: all 0.3s ease; text-transform: uppercase;
+                               letter-spacing: 2px;">
+                    Click Me
+                </button>
+            `
+        });
+
+        // Vintage Table Block
+        blockManager.add('vintage-table', {
+            label: '<i class="fas fa-table"></i><div>Vintage Table</div>',
+            category: 'Vintage Components',
+            content: `
+                <table style="width: 100%; border-collapse: collapse;
+                             font-family: 'Source Sans Pro', sans-serif;
+                             box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                    <thead>
+                        <tr style="background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+                                   color: #d4af37; border-bottom: 3px solid #d4af37;">
+                            <th style="padding: 1.2rem; text-align: left; font-family: 'Playfair Display', serif; font-size: 1.1rem;">Column 1</th>
+                            <th style="padding: 1.2rem; text-align: left; font-family: 'Playfair Display', serif; font-size: 1.1rem;">Column 2</th>
+                            <th style="padding: 1.2rem; text-align: left; font-family: 'Playfair Display', serif; font-size: 1.1rem;">Column 3</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background: #f5f5dc; border-bottom: 1px solid #8b4513;">
+                            <td style="padding: 1rem; color: #2c2c2c;">Data 1</td>
+                            <td style="padding: 1rem; color: #2c2c2c;">Data 2</td>
+                            <td style="padding: 1rem; color: #2c2c2c;">Data 3</td>
+                        </tr>
+                        <tr style="background: #ebe8d8; border-bottom: 1px solid #8b4513;">
+                            <td style="padding: 1rem; color: #2c2c2c;">Data 4</td>
+                            <td style="padding: 1rem; color: #2c2c2c;">Data 5</td>
+                            <td style="padding: 1rem; color: #2c2c2c;">Data 6</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `
+        });
+
+        // Flapper Form Block
+        blockManager.add('flapper-form', {
+            label: '<i class="fas fa-file-alt"></i><div>Flapper Form</div>',
+            category: 'Vintage Components',
+            content: `
+                <form style="background: #f5f5dc; border: 3px solid #d4af37;
+                           padding: 2rem; max-width: 600px; margin: 2rem auto;
+                           box-shadow: 0 8px 24px rgba(0,0,0,0.3);">
+                    <h3 style="color: #1a1a1a; font-family: 'Playfair Display', serif;
+                               font-size: 2rem; margin-bottom: 1.5rem; text-align: center;">
+                        Get In Touch
+                    </h3>
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; color: #2c2c2c; font-family: 'Source Sans Pro', sans-serif;
+                                     font-weight: 600; margin-bottom: 0.5rem;">
+                            Name
+                        </label>
+                        <input type="text" style="width: 100%; padding: 0.75rem; border: 2px solid #8b4513;
+                                                   background: white; font-family: 'Source Sans Pro', sans-serif;" />
+                    </div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; color: #2c2c2c; font-family: 'Source Sans Pro', sans-serif;
+                                     font-weight: 600; margin-bottom: 0.5rem;">
+                            Email
+                        </label>
+                        <input type="email" style="width: 100%; padding: 0.75rem; border: 2px solid #8b4513;
+                                                    background: white; font-family: 'Source Sans Pro', sans-serif;" />
+                    </div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; color: #2c2c2c; font-family: 'Source Sans Pro', sans-serif;
+                                     font-weight: 600; margin-bottom: 0.5rem;">
+                            Message
+                        </label>
+                        <textarea rows="4" style="width: 100%; padding: 0.75rem; border: 2px solid #8b4513;
+                                                  background: white; font-family: 'Source Sans Pro', sans-serif;"></textarea>
+                    </div>
+                    <button type="submit" style="background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+                                                 color: #d4af37; padding: 1rem 2rem; border: 2px solid #d4af37;
+                                                 font-family: 'Playfair Display', serif; font-size: 1.1rem;
+                                                 width: 100%; cursor: pointer;">
+                        Send Message
+                    </button>
+                </form>
+            `
+        });
+
+        // Add basic form elements
+        blockManager.add('input-field', {
+            label: '<i class="fas fa-i-cursor"></i><div>Input Field</div>',
+            category: 'Form Elements',
+            content: '<input type="text" placeholder="Enter text..." style="padding: 0.5rem; border: 1px solid #ccc; width: 100%;" />'
+        });
+
+        blockManager.add('textarea-field', {
+            label: '<i class="fas fa-paragraph"></i><div>Text Area</div>',
+            category: 'Form Elements',
+            content: '<textarea rows="4" placeholder="Enter message..." style="padding: 0.5rem; border: 1px solid #ccc; width: 100%;"></textarea>'
+        });
+
+        blockManager.add('button-element', {
+            label: '<i class="fas fa-hand-pointer"></i><div>Button</div>',
+            category: 'Form Elements',
+            content: '<button type="button" style="padding: 0.75rem 1.5rem; background: #4a90e2; color: white; border: none; cursor: pointer; border-radius: 4px;">Click Me</button>'
+        });
+
+        // Gallery Grid Block
+        blockManager.add('gallery-grid', {
+            label: '<i class="fas fa-th"></i><div>Gallery Grid</div>',
+            category: 'Vintage Components',
+            content: `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                           gap: 2rem; padding: 2rem;">
+                    <div style="border: 3px solid #d4af37; padding: 1rem; background: #f5f5dc;
+                               box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                        <img src="https://via.placeholder.com/300x200/1a1a1a/d4af37?text=Image+1"
+                             style="width: 100%; height: auto; margin-bottom: 1rem;" />
+                        <h4 style="color: #1a1a1a; font-family: 'Playfair Display', serif; font-size: 1.3rem;">Gallery Item 1</h4>
+                    </div>
+                    <div style="border: 3px solid #d4af37; padding: 1rem; background: #f5f5dc;
+                               box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                        <img src="https://via.placeholder.com/300x200/1a1a1a/d4af37?text=Image+2"
+                             style="width: 100%; height: auto; margin-bottom: 1rem;" />
+                        <h4 style="color: #1a1a1a; font-family: 'Playfair Display', serif; font-size: 1.3rem;">Gallery Item 2</h4>
+                    </div>
+                    <div style="border: 3px solid #d4af37; padding: 1rem; background: #f5f5dc;
+                               box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                        <img src="https://via.placeholder.com/300x200/1a1a1a/d4af37?text=Image+3"
+                             style="width: 100%; height: auto; margin-bottom: 1rem;" />
+                        <h4 style="color: #1a1a1a; font-family: 'Playfair Display', serif; font-size: 1.3rem;">Gallery Item 3</h4>
+                    </div>
+                </div>
+            `
+        });
+
+        // Add device commands
+        editor.Commands.add('set-device-desktop', {
+            run: editor => editor.setDevice('Desktop')
+        });
+        editor.Commands.add('set-device-tablet', {
+            run: editor => editor.setDevice('Tablet')
+        });
+        editor.Commands.add('set-device-mobile', {
+            run: editor => editor.setDevice('Mobile')
+        });
+
+        // Save Theme Function
+        document.getElementById('save-theme').addEventListener('click', async function() {
+            const themeName = document.getElementById('theme-name').value.trim();
+
+            if (!themeName) {
+                alert('Please enter a theme name');
+                return;
+            }
+
+            // Show loading overlay
+            document.getElementById('loading-overlay').style.display = 'flex';
+
+            const themeData = {
+                name: themeName,
+                description: 'Visual theme created with GrapesJS',
+                gjs_data: {
+                    components: JSON.parse(JSON.stringify(editor.getComponents())),
+                    styles: JSON.parse(JSON.stringify(editor.getStyle())),
+                    html: editor.getHtml(),
+                    css: editor.getCss()
+                },
+                gjs_assets: editor.AssetManager.getAll().map(asset => ({
+                    src: asset.get('src'),
+                    name: asset.get('name')
+                })),
+                html_export: editor.getHtml(),
+                theme_type: 'visual'
+            };
+
+            const url = themeId ? '/themes/update/' + themeId : '/themes/visual-save';
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(themeData)
+                });
+
+                const result = await response.json();
+
+                // Hide loading overlay
+                document.getElementById('loading-overlay').style.display = 'none';
+
+                if (result.success) {
+                    alert('Theme saved successfully!');
+                    window.location.href = '/themes';
+                } else {
+                    alert('Error saving theme: ' + result.message);
+                }
+            } catch (error) {
+                document.getElementById('loading-overlay').style.display = 'none';
+                alert('Error saving theme: ' + error.message);
+            }
+        });
+
+        // Export HTML
+        document.getElementById('export-html').addEventListener('click', function() {
+            const html = '<!DOCTYPE html>\n<html lang="en">\n<head>\n' +
+                         '<meta charset="UTF-8">\n' +
+                         '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
+                         '<title>Exported Theme</title>\n' +
+                         '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">\n' +
+                         '<style>\n' + editor.getCss() + '\n</style>\n' +
+                         '</head>\n<body>\n' + editor.getHtml() + '\n</body>\n</html>';
+
+            const blob = new Blob([html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'theme-export.html';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // Export React
+        document.getElementById('export-react').addEventListener('click', function() {
+            const html = editor.getHtml();
+            const css = editor.getCss();
+
+            // Basic HTML to JSX conversion
+            let jsx = html
+                .replace(/class=/g, 'className=')
+                .replace(/for=/g, 'htmlFor=')
+                .replace(/style="([^"]*)"/g, function(match, styles) {
+                    const styleObj = styles.split(';')
+                        .filter(s => s.trim())
+                        .map(s => {
+                            const parts = s.split(':');
+                            if (parts.length === 2) {
+                                const key = parts[0].trim().replace(/-([a-z])/g, g => g[1].toUpperCase());
+                                const value = parts[1].trim();
+                                return key + ": '" + value + "'";
+                            }
+                            return '';
+                        })
+                        .filter(s => s)
+                        .join(', ');
+                    return 'style={{' + styleObj + '}}';
+                });
+
+            const reactComponent = 'import React from \'react\';\n\n' +
+                '// Embedded Styles\n' +
+                'const styles = `' + css + '`;\n\n' +
+                'function ThemeComponent() {\n' +
+                '    return (\n' +
+                '        <>\n' +
+                '            <style>{styles}</style>\n' +
+                '            ' + jsx + '\n' +
+                '        </>\n' +
+                '    );\n' +
+                '}\n\n' +
+                'export default ThemeComponent;\n';
+
+            const blob = new Blob([reactComponent], { type: 'text/javascript' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ThemeComponent.jsx';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // Preview Theme
+        document.getElementById('preview-theme').addEventListener('click', function() {
+            const previewHtml = '<!DOCTYPE html>\n<html lang="en">\n<head>\n' +
+                                '<meta charset="UTF-8">\n' +
+                                '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
+                                '<title>Theme Preview</title>\n' +
+                                '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">\n' +
+                                '<style>\n' + editor.getCss() + '\n</style>\n' +
+                                '</head>\n<body>\n' + editor.getHtml() + '\n</body>\n</html>';
+
+            const previewWindow = window.open('', '_blank');
+            previewWindow.document.write(previewHtml);
+            previewWindow.document.close();
+        });
+
+        console.log('GrapesJS Visual Theme Builder initialized successfully');
+    </script>
+</body>
+</html>

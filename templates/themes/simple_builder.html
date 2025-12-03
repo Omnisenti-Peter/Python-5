@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Theme Builder - Opinian</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Source Sans Pro', sans-serif;
+            background: #f5f5f5;
+        }
+
+        .builder-container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            height: 100vh;
+            gap: 0;
+        }
+
+        /* Left Sidebar */
+        .sidebar {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+            color: #f5f5dc;
+            padding: 1.5rem;
+            overflow-y: auto;
+            border-right: 3px solid #d4af37;
+        }
+
+        .sidebar h2 {
+            color: #d4af37;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #d4af37;
+        }
+
+        .sidebar h3 {
+            color: #d4af37;
+            font-size: 1.1rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .component-block {
+            background: #f5f5dc;
+            color: #1a1a1a;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border: 2px solid #d4af37;
+            border-radius: 8px;
+            cursor: move;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .component-block:hover {
+            background: #d4af37;
+            color: #1a1a1a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+        }
+
+        .component-block i {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .component-block .label {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* Main Canvas Area */
+        .canvas-area {
+            display: flex;
+            flex-direction: column;
+            background: #ffffff;
+        }
+
+        .canvas-header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+            padding: 1rem 1.5rem;
+            border-bottom: 3px solid #d4af37;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .canvas-header h1 {
+            color: #d4af37;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+        }
+
+        .canvas-header input {
+            padding: 0.5rem 1rem;
+            background: rgba(245, 245, 220, 0.1);
+            border: 2px solid #d4af37;
+            border-radius: 8px;
+            color: #f5f5dc;
+            font-size: 1rem;
+            width: 300px;
+        }
+
+        .canvas-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: 2px solid;
+            background: transparent;
+            color: #d4af37;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-family: 'Source Sans Pro', sans-serif;
+        }
+
+        .btn:hover {
+            background: #d4af37;
+            color: #1a1a1a;
+        }
+
+        .btn-save { border-color: #10b981; color: #10b981; }
+        .btn-save:hover { background: #10b981; color: white; }
+
+        .btn-preview { border-color: #f59e0b; color: #f59e0b; }
+        .btn-preview:hover { background: #f59e0b; color: white; }
+
+        .btn-close { border-color: #6b7280; color: #6b7280; }
+        .btn-close:hover { background: #6b7280; color: white; }
+
+        .canvas-content {
+            flex: 1;
+            background: #f5f5dc;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        #drop-zone {
+            min-height: 600px;
+            background: white;
+            border: 3px dashed #d4af37;
+            border-radius: 12px;
+            padding: 2rem;
+        }
+
+        #drop-zone.drag-over {
+            background: rgba(212, 175, 55, 0.1);
+            border-style: solid;
+        }
+
+        #drop-zone.empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: #999;
+        }
+
+        #drop-zone.empty i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: #d4af37;
+        }
+
+        .component-wrapper {
+            position: relative;
+            margin-bottom: 1rem;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .component-wrapper:hover {
+            border-color: #d4af37;
+        }
+
+        .component-wrapper.selected {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .component-actions {
+            position: absolute;
+            top: -35px;
+            right: 0;
+            display: none;
+            gap: 0.25rem;
+        }
+
+        .component-wrapper:hover .component-actions,
+        .component-wrapper.selected .component-actions {
+            display: flex;
+        }
+
+        .action-btn {
+            padding: 0.4rem 0.8rem;
+            background: #1a1a1a;
+            color: #d4af37;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .action-btn:hover {
+            background: #d4af37;
+            color: #1a1a1a;
+        }
+
+        /* Help Panel */
+        .help-panel {
+            background: #fffbeb;
+            border: 2px solid #f59e0b;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .help-panel h3 {
+            color: #b45309;
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+        }
+
+        .help-panel ol {
+            margin-left: 1.5rem;
+            color: #78350f;
+        }
+
+        .help-panel ol li {
+            margin-bottom: 0.25rem;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            border: 3px solid #d4af37;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h3 {
+            color: #1a1a1a;
+            font-family: 'Playfair Display', serif;
+            margin: 0;
+        }
+
+        .modal-body {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #d4af37;
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .modal-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #2c2c2c;
+        }
+
+        .image-clickable {
+            cursor: pointer;
+            position: relative;
+        }
+
+        .image-clickable::after {
+            content: '📷 Click to change image';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .image-clickable:hover::after {
+            opacity: 1;
+        }
+
+        .video-wrapper {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .video-wrapper::after {
+            content: '▶️ Click to change video URL';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .video-wrapper:hover::after {
+            opacity: 1;
+        }
+
+        .info-box {
+            background: #e0f2fe;
+            border: 2px solid #0284c7;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .info-box h4 {
+            color: #075985;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .info-box p {
+            color: #0c4a6e;
+            margin: 0.25rem 0;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Image Upload Modal -->
+    <div id="image-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-image"></i> Change Image</h3>
+            </div>
+            <div class="modal-body">
+                <label class="modal-label">Option 1: Upload Image</label>
+                <input type="file" id="image-upload" accept="image/*" class="modal-input">
+
+                <label class="modal-label">Option 2: Enter Image URL</label>
+                <input type="text" id="image-url" class="modal-input" placeholder="https://example.com/image.jpg">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-close" onclick="closeImageModal()">Cancel</button>
+                <button class="btn btn-save" onclick="applyImage()">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- YouTube Modal -->
+    <div id="youtube-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-video"></i> YouTube Video</h3>
+            </div>
+            <div class="modal-body">
+                <label class="modal-label">Enter YouTube URL</label>
+                <input type="text" id="youtube-url" class="modal-input" placeholder="https://www.youtube.com/watch?v=...">
+
+                <div class="info-box">
+                    <h4>📺 How to get YouTube URL:</h4>
+                    <p>1. Go to YouTube video</p>
+                    <p>2. Click "Share" button</p>
+                    <p>3. Copy the URL</p>
+                    <p>4. Paste here</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-close" onclick="closeYouTubeModal()">Cancel</button>
+                <button class="btn btn-save" onclick="applyYouTube()">Embed Video</button>
+            </div>
+        </div>
+    </div>
+    <div class="builder-container">
+        <!-- Left Sidebar with Components -->
+        <div class="sidebar">
+            <h2><i class="fas fa-cubes"></i> Components</h2>
+
+            <!-- Help Instructions -->
+            <div class="help-panel">
+                <h3><i class="fas fa-question-circle"></i> Quick Guide:</h3>
+                <ol>
+                    <li><strong>Drag</strong> component → white area</li>
+                    <li><strong>Click text</strong> to edit</li>
+                    <li><strong>Click image</strong> to upload/change</li>
+                    <li><strong>Click video</strong> for YouTube URL</li>
+                    <li><strong>Save</strong> theme when done</li>
+                </ol>
+            </div>
+
+            <div class="info-box" style="margin-top: 1rem;">
+                <h4>💡 What is "Apply Theme"?</h4>
+                <p><strong>After saving:</strong> Go to theme list</p>
+                <p><strong>Click "Apply":</strong> Theme becomes active for your organization</p>
+                <p><strong>Result:</strong> All your pages/blogs use this design!</p>
+            </div>
+
+            <!-- Vintage Components -->
+            <h3>Vintage Components</h3>
+
+            <div class="component-block" draggable="true" data-component="vintage-header">
+                <i class="fas fa-heading"></i>
+                <div class="label">Vintage Header</div>
+            </div>
+
+            <div class="component-block" draggable="true" data-component="art-deco-card">
+                <i class="fas fa-id-card"></i>
+                <div class="label">Art Deco Card</div>
+            </div>
+
+            <div class="component-block" draggable="true" data-component="noir-button">
+                <i class="fas fa-hand-pointer"></i>
+                <div class="label">Noir Button</div>
+            </div>
+
+            <div class="component-block" draggable="true" data-component="vintage-table">
+                <i class="fas fa-table"></i>
+                <div class="label">Vintage Table</div>
+            </div>
+
+            <div class="component-block" draggable="true" data-component="contact-form">
+                <i class="fas fa-envelope"></i>
+                <div class="label">Contact Form</div>
+            </div>
+
+            <h3>Basic Elements</h3>
+
+            <div class="component-block" draggable="true" data-component="heading">
+                <i class="fas fa-heading"></i>
+                <div class="label">Heading</div>
+            </div>
+
+            <div class="component-block" draggable="true" data-component="paragraph">
+                <i class="fas fa-paragraph"></i>
+                <div class="label">Paragraph</div>
+            </div>
+
+            <div class="component-block" draggable="true" data-component="image">
+                <i class="fas fa-image"></i>
+                <div class="label">Image</div>
+            </div>
+
+            <div class="component-block" draggable="true" data-component="video">
+                <i class="fas fa-video"></i>
+                <div class="label">YouTube Video</div>
+            </div>
+
+            <div class="component-block" draggable="true" data-component="button">
+                <i class="fas fa-square"></i>
+                <div class="label">Button</div>
+            </div>
+        </div>
+
+        <!-- Main Canvas Area -->
+        <div class="canvas-area">
+            <div class="canvas-header">
+                <h1><i class="fas fa-palette"></i> Simple Theme Builder</h1>
+                <input type="text" id="theme-name" placeholder="Enter theme name..." value="{{ theme.name if theme else '' }}">
+                <div class="canvas-actions">
+                    <button class="btn btn-save" onclick="saveTheme()">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                    <button class="btn btn-preview" onclick="previewTheme()">
+                        <i class="fas fa-eye"></i> Preview
+                    </button>
+                    <a href="/themes" class="btn btn-close">
+                        <i class="fas fa-times"></i> Close
+                    </a>
+                </div>
+            </div>
+
+            <div class="canvas-content">
+                <div id="drop-zone" class="empty">
+                    <i class="fas fa-hand-point-left"></i>
+                    <h3>Drag components from the left sidebar here</h3>
+                    <p>Start by dragging "Vintage Header" or any other component</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const themeId = {{ theme.id if theme else 'null' }};
+        const dropZone = document.getElementById('drop-zone');
+        let selectedComponent = null;
+
+        // Component templates
+        const componentTemplates = {
+            'vintage-header': `
+                <header style="background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+                               padding: 3rem 2rem; border-bottom: 5px solid #d4af37; text-align: center;">
+                    <h1 style="color: #d4af37; font-family: 'Playfair Display', serif; font-size: 3.5rem; margin: 0;" contenteditable="true">
+                        Your Elegant Title
+                    </h1>
+                    <p style="color: #f5f5dc; font-size: 1.2rem; margin-top: 1rem;" contenteditable="true">
+                        A sophisticated subtitle
+                    </p>
+                </header>
+            `,
+            'art-deco-card': `
+                <div style="background: #f5f5dc; border: 3px solid #d4af37; padding: 2rem; margin: 1rem 0;
+                           box-shadow: 0 8px 24px rgba(0,0,0,0.3);">
+                    <h3 style="color: #1a1a1a; font-family: 'Playfair Display', serif; font-size: 2rem; margin-bottom: 1rem;" contenteditable="true">
+                        Card Title
+                    </h3>
+                    <p style="color: #2c2c2c; line-height: 1.6;" contenteditable="true">
+                        Your elegant content goes here. Click to edit this text.
+                    </p>
+                </div>
+            `,
+            'noir-button': `
+                <button style="background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+                               color: #d4af37; padding: 1rem 2.5rem; border: 3px solid #d4af37;
+                               font-family: 'Playfair Display', serif; font-size: 1.3rem; cursor: pointer;
+                               margin: 1rem 0;" contenteditable="true">
+                    Click Me
+                </button>
+            `,
+            'vintage-table': `
+                <table style="width: 100%; border-collapse: collapse; margin: 1rem 0; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                    <thead>
+                        <tr style="background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%); color: #d4af37;">
+                            <th style="padding: 1.2rem; text-align: left; font-family: 'Playfair Display', serif;" contenteditable="true">Column 1</th>
+                            <th style="padding: 1.2rem; text-align: left; font-family: 'Playfair Display', serif;" contenteditable="true">Column 2</th>
+                            <th style="padding: 1.2rem; text-align: left; font-family: 'Playfair Display', serif;" contenteditable="true">Column 3</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background: #f5f5dc;">
+                            <td style="padding: 1rem; border-bottom: 1px solid #8b4513;" contenteditable="true">Data 1</td>
+                            <td style="padding: 1rem; border-bottom: 1px solid #8b4513;" contenteditable="true">Data 2</td>
+                            <td style="padding: 1rem; border-bottom: 1px solid #8b4513;" contenteditable="true">Data 3</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `,
+            'contact-form': `
+                <form style="background: #f5f5dc; border: 3px solid #d4af37; padding: 2rem; max-width: 600px; margin: 1rem 0;">
+                    <h3 style="color: #1a1a1a; font-family: 'Playfair Display', serif; font-size: 2rem; text-align: center; margin-bottom: 1.5rem;" contenteditable="true">
+                        Get In Touch
+                    </h3>
+                    <input type="text" placeholder="Your Name" style="width: 100%; padding: 0.75rem; border: 2px solid #8b4513; margin-bottom: 1rem;">
+                    <input type="email" placeholder="Your Email" style="width: 100%; padding: 0.75rem; border: 2px solid #8b4513; margin-bottom: 1rem;">
+                    <textarea placeholder="Your Message" rows="4" style="width: 100%; padding: 0.75rem; border: 2px solid #8b4513; margin-bottom: 1rem;"></textarea>
+                    <button type="submit" style="background: #1a1a1a; color: #d4af37; padding: 1rem 2rem; border: 2px solid #d4af37; width: 100%; cursor: pointer;">
+                        Send Message
+                    </button>
+                </form>
+            `,
+            'heading': `<h2 style="font-family: 'Playfair Display', serif; font-size: 2.5rem; color: #1a1a1a; margin: 1rem 0;" contenteditable="true">Your Heading Here</h2>`,
+            'paragraph': `<p style="font-size: 1.1rem; line-height: 1.6; color: #2c2c2c; margin: 1rem 0;" contenteditable="true">Click to edit this paragraph. Add your content here.</p>`,
+            'image': `<img class="image-clickable" src="https://via.placeholder.com/600x400/1a1a1a/d4af37?text=Click+to+Change+Image" style="max-width: 100%; height: auto; margin: 1rem 0; border: 3px solid #d4af37;" onclick="openImageModal(this)">`,
+            'video': `<div class="video-wrapper" onclick="openYouTubeModal(this)" style="margin: 1rem 0; border: 3px solid #d4af37; background: #000;"><iframe width="100%" height="400" src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`,
+            'button': `<button style="background: #d4af37; color: #1a1a1a; padding: 0.75rem 1.5rem; border: none; cursor: pointer; font-size: 1rem; margin: 1rem 0;" contenteditable="true">Click Me</button>`
+        };
+
+        let currentImageElement = null;
+        let currentVideoElement = null;
+
+        // Drag and drop functionality
+        document.querySelectorAll('.component-block').forEach(block => {
+            block.addEventListener('dragstart', (e) => {
+                e.dataTransfer.effectAllowed = 'copy';
+                e.dataTransfer.setData('component-type', e.currentTarget.dataset.component);
+            });
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            dropZone.classList.remove('empty');
+
+            const componentType = e.dataTransfer.getData('component-type');
+            if (componentTemplates[componentType]) {
+                addComponent(componentTemplates[componentType]);
+            }
+        });
+
+        function addComponent(html) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'component-wrapper';
+            wrapper.innerHTML = `
+                <div class="component-actions">
+                    <button class="action-btn" onclick="moveUp(this)"><i class="fas fa-arrow-up"></i></button>
+                    <button class="action-btn" onclick="moveDown(this)"><i class="fas fa-arrow-down"></i></button>
+                    <button class="action-btn" onclick="deleteComponent(this)"><i class="fas fa-trash"></i></button>
+                </div>
+                ${html}
+            `;
+
+            wrapper.addEventListener('click', (e) => {
+                if (!e.target.closest('.component-actions')) {
+                    selectComponent(wrapper);
+                }
+            });
+
+            dropZone.appendChild(wrapper);
+        }
+
+        function selectComponent(wrapper) {
+            document.querySelectorAll('.component-wrapper').forEach(w => w.classList.remove('selected'));
+            wrapper.classList.add('selected');
+            selectedComponent = wrapper;
+        }
+
+        function moveUp(btn) {
+            const wrapper = btn.closest('.component-wrapper');
+            const prev = wrapper.previousElementSibling;
+            if (prev) {
+                dropZone.insertBefore(wrapper, prev);
+            }
+        }
+
+        function moveDown(btn) {
+            const wrapper = btn.closest('.component-wrapper');
+            const next = wrapper.nextElementSibling;
+            if (next) {
+                dropZone.insertBefore(next, wrapper);
+            }
+        }
+
+        function deleteComponent(btn) {
+            if (confirm('Delete this component?')) {
+                btn.closest('.component-wrapper').remove();
+                if (dropZone.children.length === 0) {
+                    dropZone.classList.add('empty');
+                }
+            }
+        }
+
+        async function saveTheme() {
+            const themeName = document.getElementById('theme-name').value.trim();
+            if (!themeName) {
+                alert('Please enter a theme name');
+                return;
+            }
+
+            const html = dropZone.innerHTML;
+            const css = `
+                body { font-family: 'Source Sans Pro', sans-serif; }
+                h1, h2, h3 { font-family: 'Playfair Display', serif; }
+            `;
+
+            const themeData = {
+                name: themeName,
+                description: 'Simple theme created with drag & drop builder',
+                gjs_data: {
+                    html: html,
+                    css: css
+                },
+                html_export: html,
+                theme_type: 'visual'
+            };
+
+            const url = themeId ? '/themes/update/' + themeId : '/themes/visual-save';
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(themeData)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert('Theme saved successfully!');
+                    window.location.href = '/themes';
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                alert('Error saving theme: ' + error.message);
+            }
+        }
+
+        // Image Modal Functions
+        function openImageModal(imgElement) {
+            currentImageElement = imgElement;
+            document.getElementById('image-modal').classList.add('active');
+        }
+
+        function closeImageModal() {
+            document.getElementById('image-modal').classList.remove('active');
+            document.getElementById('image-upload').value = '';
+            document.getElementById('image-url').value = '';
+            currentImageElement = null;
+        }
+
+        async function applyImage() {
+            const fileInput = document.getElementById('image-upload');
+            const urlInput = document.getElementById('image-url').value.trim();
+
+            if (fileInput.files && fileInput.files[0]) {
+                // Upload file
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+
+                try {
+                    const response = await fetch('/media/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        currentImageElement.src = result.url;
+                        closeImageModal();
+                    } else {
+                        alert('Upload failed: ' + result.error);
+                    }
+                } catch (error) {
+                    alert('Upload error: ' + error.message);
+                }
+            } else if (urlInput) {
+                // Use URL
+                currentImageElement.src = urlInput;
+                closeImageModal();
+            } else {
+                alert('Please upload an image or enter a URL');
+            }
+        }
+
+        // YouTube Modal Functions
+        function openYouTubeModal(videoWrapper) {
+            currentVideoElement = videoWrapper;
+            const iframe = videoWrapper.querySelector('iframe');
+            if (iframe) {
+                const currentSrc = iframe.src;
+                const videoId = extractYouTubeId(currentSrc);
+                if (videoId) {
+                    document.getElementById('youtube-url').value = 'https://www.youtube.com/watch?v=' + videoId;
+                }
+            }
+            document.getElementById('youtube-modal').classList.add('active');
+        }
+
+        function closeYouTubeModal() {
+            document.getElementById('youtube-modal').classList.remove('active');
+            document.getElementById('youtube-url').value = '';
+            currentVideoElement = null;
+        }
+
+        function applyYouTube() {
+            const url = document.getElementById('youtube-url').value.trim();
+            if (!url) {
+                alert('Please enter a YouTube URL');
+                return;
+            }
+
+            const videoId = extractYouTubeId(url);
+            if (!videoId) {
+                alert('Invalid YouTube URL. Please use format: https://www.youtube.com/watch?v=VIDEO_ID');
+                return;
+            }
+
+            const embedUrl = 'https://www.youtube.com/embed/' + videoId;
+            const iframe = currentVideoElement.querySelector('iframe');
+            if (iframe) {
+                iframe.src = embedUrl;
+            }
+
+            closeYouTubeModal();
+        }
+
+        function extractYouTubeId(url) {
+            // Handle different YouTube URL formats
+            const patterns = [
+                /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+                /^([a-zA-Z0-9_-]{11})$/  // Direct video ID
+            ];
+
+            for (const pattern of patterns) {
+                const match = url.match(pattern);
+                if (match && match[1]) {
+                    return match[1];
+                }
+            }
+            return null;
+        }
+
+        function previewTheme() {
+            const html = dropZone.innerHTML;
+
+            // Clean up for preview (remove component wrappers and actions)
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+
+            // Remove all component wrappers and actions
+            tempDiv.querySelectorAll('.component-actions').forEach(el => el.remove());
+
+            const cleanHtml = tempDiv.innerHTML;
+
+            const previewWindow = window.open('', '_blank', 'width=1200,height=800');
+            previewWindow.document.write(`
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Theme Preview - ${document.getElementById('theme-name').value || 'Untitled'}</title>
+                    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+                    <style>
+                        * {
+                            box-sizing: border-box;
+                        }
+                        body {
+                            font-family: 'Source Sans Pro', sans-serif;
+                            margin: 0;
+                            padding: 0;
+                            background: #ffffff;
+                        }
+                        h1, h2, h3, h4, h5, h6 {
+                            font-family: 'Playfair Display', serif;
+                        }
+                        .component-wrapper {
+                            border: none !important;
+                        }
+                        .selected {
+                            border: none !important;
+                            box-shadow: none !important;
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${cleanHtml}
+                </body>
+                </html>
+            `);
+            previewWindow.document.close();
+        }
+
+        // Load existing theme data if editing
+        {% if theme and theme.gjs_data %}
+        window.addEventListener('DOMContentLoaded', () => {
+            const existingHtml = {{ (theme.gjs_data.html | tojson) if theme.gjs_data else '""' }};
+            if (existingHtml) {
+                dropZone.innerHTML = existingHtml;
+                dropZone.classList.remove('empty');
+            }
+        });
+        {% endif %}
+    </script>
+</body>
+</html>
