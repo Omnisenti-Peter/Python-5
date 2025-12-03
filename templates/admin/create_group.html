@@ -69,6 +69,24 @@
                     </p>
                 </div>
 
+                <!-- Theme Selection -->
+                <div class="mb-6">
+                    <label for="theme_id" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-palette mr-1"></i>Group Theme
+                    </label>
+                    <select id="theme_id" name="theme_id" class="vintage-input w-full">
+                        <option value="">No theme (Default styling)</option>
+                        {% for theme in themes %}
+                        <option value="{{ theme.id }}">
+                            {{ theme.name }}{% if theme.theme_type %} ({{ theme.theme_type }}){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">
+                        <i class="fas fa-info-circle mr-1"></i>Select the theme that will be applied to all pages and blog posts for this group
+                    </p>
+                </div>
+
                 <!-- Info Box -->
                 <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
                     <div class="flex">
@@ -78,7 +96,7 @@
                         <div class="ml-3">
                             <p class="text-sm text-blue-700">
                                 <strong>Note:</strong> After creating the group, you can configure additional settings
-                                like contact page content, about page content, and theme from the edit page.
+                                like contact page content and about page content from the edit page.
                             </p>
                         </div>
                     </div>

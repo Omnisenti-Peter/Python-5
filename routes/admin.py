@@ -466,6 +466,16 @@ def create_group():
         name = request.form.get('name')
         description = request.form.get('description')
         admin_user_id = request.form.get('admin_user_id')
+        theme_id = request.form.get('theme_id')
+
+        # Convert theme_id to int or None
+        if theme_id and theme_id != '':
+            try:
+                theme_id = int(theme_id)
+            except ValueError:
+                theme_id = None
+        else:
+            theme_id = None
 
         try:
             conn = get_db_connection()
@@ -482,10 +492,10 @@ def create_group():
 
                 # Create group
                 cursor.execute("""
-                    INSERT INTO groups (name, description, admin_user_id)
-                    VALUES (%s, %s, %s)
+                    INSERT INTO groups (name, description, admin_user_id, theme_id)
+                    VALUES (%s, %s, %s, %s)
                     RETURNING id
-                """, (name, description, admin_user_id if admin_user_id else None))
+                """, (name, description, admin_user_id if admin_user_id else None, theme_id))
 
                 group_id = cursor.fetchone()[0]
 
@@ -526,18 +536,33 @@ def create_group():
             """)
             available_admins = cursor.fetchall()
 
+            # Get all themes
+            cursor.execute("""
+                SELECT id, name, description, theme_type
+                FROM themes
+                WHERE is_active = TRUE
+                ORDER BY name
+            """)
+            themes = cursor.fetchall()
+
             cursor.close()
             conn.close()
 
-            return render_template('admin/create_group.html', available_admins=available_admins)
+            return render_template('admin/create_group.html',
+                                 available_admins=available_admins,
+                                 themes=themes)
         else:
             flash('Database connection error', 'danger')
-            return render_template('admin/create_group.html', available_admins=[])
+            return render_template('admin/create_group.html',
+                                 available_admins=[],
+                                 themes=[])
 
     except Exception as e:
         flash('Error loading form', 'danger')
         logger.error(f"Error loading create group form: {e}")
-        return render_template('admin/create_group.html', available_admins=[])
+        return render_template('admin/create_group.html',
+                             available_admins=[],
+                             themes=[])
 
 @bp.route('/groups/edit/<int:group_id>', methods=['GET', 'POST'])
 @login_required
