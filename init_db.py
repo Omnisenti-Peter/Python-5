@@ -125,12 +125,15 @@ def create_tables():
         """)
         
         # Update groups table to reference themes
-        cursor.execute("""
-            ALTER TABLE groups 
-            ADD CONSTRAINT fk_groups_theme 
-            FOREIGN KEY (theme_id) REFERENCES themes(id) 
-            ON DELETE SET NULL
-        """)
+        try:
+            cursor.execute("""
+                ALTER TABLE groups
+                ADD CONSTRAINT fk_groups_theme
+                FOREIGN KEY (theme_id) REFERENCES themes(id)
+                ON DELETE SET NULL
+            """)
+        except Exception:
+            pass  # Constraint already exists
         
         # Create templates table
         cursor.execute("""
@@ -171,28 +174,37 @@ def create_tables():
         """)
         
         # Update groups table to reference admin user
-        cursor.execute("""
-            ALTER TABLE groups 
-            ADD CONSTRAINT fk_groups_admin 
-            FOREIGN KEY (admin_user_id) REFERENCES users(id) 
-            ON DELETE SET NULL
-        """)
+        try:
+            cursor.execute("""
+                ALTER TABLE groups
+                ADD CONSTRAINT fk_groups_admin
+                FOREIGN KEY (admin_user_id) REFERENCES users(id)
+                ON DELETE SET NULL
+            """)
+        except Exception:
+            pass  # Constraint already exists
         
         # Update themes table to reference creator
-        cursor.execute("""
-            ALTER TABLE themes 
-            ADD CONSTRAINT fk_themes_creator 
-            FOREIGN KEY (created_by) REFERENCES users(id) 
-            ON DELETE SET NULL
-        """)
+        try:
+            cursor.execute("""
+                ALTER TABLE themes
+                ADD CONSTRAINT fk_themes_creator
+                FOREIGN KEY (created_by) REFERENCES users(id)
+                ON DELETE SET NULL
+            """)
+        except Exception:
+            pass  # Constraint already exists
         
         # Update templates table to reference creator
-        cursor.execute("""
-            ALTER TABLE templates 
-            ADD CONSTRAINT fk_templates_creator 
-            FOREIGN KEY (created_by) REFERENCES users(id) 
-            ON DELETE SET NULL
-        """)
+        try:
+            cursor.execute("""
+                ALTER TABLE templates
+                ADD CONSTRAINT fk_templates_creator
+                FOREIGN KEY (created_by) REFERENCES users(id)
+                ON DELETE SET NULL
+            """)
+        except Exception:
+            pass  # Constraint already exists
         
         # Create role_permissions table
         cursor.execute("""
@@ -339,13 +351,204 @@ def create_tables():
         
         conn.commit()
         print("All tables created successfully")
-        
+
         cursor.close()
         conn.close()
-        
+
     except Exception as e:
         print(f"Error creating tables: {e}")
         sys.exit(1)
+
+def update_schema():
+    """Update existing schema by adding missing columns"""
+    try:
+        conn = psycopg2.connect(
+            host=os.getenv('DB_HOST', 'localhost'),
+            user=os.getenv('DB_USER', 'postgres'),
+            password=os.getenv('DB_PASSWORD', ''),
+            database=os.getenv('DB_NAME', 'opinian'),
+            port=os.getenv('DB_PORT', '5432')
+        )
+        cursor = conn.cursor()
+
+        print("Checking and updating schema...")
+
+        # Helper function to check if column exists
+        def column_exists(table_name, column_name):
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_name = %s AND column_name = %s
+                )
+            """, (table_name, column_name))
+            return cursor.fetchone()[0]
+
+        # Add missing columns to themes table
+        if not column_exists('themes', 'gjs_data'):
+            cursor.execute("ALTER TABLE themes ADD COLUMN gjs_data JSONB DEFAULT NULL")
+            print("  - Added column: themes.gjs_data")
+
+        if not column_exists('themes', 'gjs_assets'):
+            cursor.execute("ALTER TABLE themes ADD COLUMN gjs_assets JSONB DEFAULT '[]'::jsonb")
+            print("  - Added column: themes.gjs_assets")
+
+        if not column_exists('themes', 'html_export'):
+            cursor.execute("ALTER TABLE themes ADD COLUMN html_export TEXT DEFAULT NULL")
+            print("  - Added column: themes.html_export")
+
+        if not column_exists('themes', 'react_export'):
+            cursor.execute("ALTER TABLE themes ADD COLUMN react_export TEXT DEFAULT NULL")
+            print("  - Added column: themes.react_export")
+
+        if not column_exists('themes', 'theme_type'):
+            cursor.execute("ALTER TABLE themes ADD COLUMN theme_type VARCHAR(50) DEFAULT 'manual'")
+            print("  - Added column: themes.theme_type")
+
+        if not column_exists('themes', 'ai_prompt'):
+            cursor.execute("ALTER TABLE themes ADD COLUMN ai_prompt TEXT DEFAULT NULL")
+            print("  - Added column: themes.ai_prompt")
+
+        # Add missing columns to groups table
+        if not column_exists('groups', 'contact_page_content'):
+            cursor.execute("ALTER TABLE groups ADD COLUMN contact_page_content TEXT")
+            print("  - Added column: groups.contact_page_content")
+
+        if not column_exists('groups', 'about_page_content'):
+            cursor.execute("ALTER TABLE groups ADD COLUMN about_page_content TEXT")
+            print("  - Added column: groups.about_page_content")
+
+        # Add missing columns to templates table
+        if not column_exists('templates', 'js_content'):
+            cursor.execute("ALTER TABLE templates ADD COLUMN js_content TEXT")
+            print("  - Added column: templates.js_content")
+
+        # Add missing columns to pages table
+        if not column_exists('pages', 'slug'):
+            cursor.execute("ALTER TABLE pages ADD COLUMN slug VARCHAR(200) NOT NULL DEFAULT ''")
+            print("  - Added column: pages.slug")
+
+        if not column_exists('pages', 'template_id'):
+            cursor.execute("ALTER TABLE pages ADD COLUMN template_id INTEGER REFERENCES templates(id)")
+            print("  - Added column: pages.template_id")
+
+        if not column_exists('pages', 'meta_description'):
+            cursor.execute("ALTER TABLE pages ADD COLUMN meta_description TEXT")
+            print("  - Added column: pages.meta_description")
+
+        if not column_exists('pages', 'meta_keywords'):
+            cursor.execute("ALTER TABLE pages ADD COLUMN meta_keywords TEXT")
+            print("  - Added column: pages.meta_keywords")
+
+        # Add missing columns to blog_posts table
+        if not column_exists('blog_posts', 'page_id'):
+            cursor.execute("ALTER TABLE blog_posts ADD COLUMN page_id INTEGER REFERENCES pages(id)")
+            print("  - Added column: blog_posts.page_id")
+
+        if not column_exists('blog_posts', 'featured_image_url'):
+            cursor.execute("ALTER TABLE blog_posts ADD COLUMN featured_image_url VARCHAR(255)")
+            print("  - Added column: blog_posts.featured_image_url")
+
+        if not column_exists('blog_posts', 'tags'):
+            cursor.execute("ALTER TABLE blog_posts ADD COLUMN tags TEXT[]")
+            print("  - Added column: blog_posts.tags")
+
+        if not column_exists('blog_posts', 'view_count'):
+            cursor.execute("ALTER TABLE blog_posts ADD COLUMN view_count INTEGER DEFAULT 0")
+            print("  - Added column: blog_posts.view_count")
+
+        # Add missing columns to users table
+        if not column_exists('users', 'profile_image_url'):
+            cursor.execute("ALTER TABLE users ADD COLUMN profile_image_url VARCHAR(255)")
+            print("  - Added column: users.profile_image_url")
+
+        if not column_exists('users', 'bio'):
+            cursor.execute("ALTER TABLE users ADD COLUMN bio TEXT")
+            print("  - Added column: users.bio")
+
+        if not column_exists('users', 'is_banned'):
+            cursor.execute("ALTER TABLE users ADD COLUMN is_banned BOOLEAN DEFAULT FALSE")
+            print("  - Added column: users.is_banned")
+
+        # Add missing columns to media_files table
+        if not column_exists('media_files', 'file_size'):
+            cursor.execute("ALTER TABLE media_files ADD COLUMN file_size INTEGER")
+            print("  - Added column: media_files.file_size")
+
+        if not column_exists('media_files', 'mime_type'):
+            cursor.execute("ALTER TABLE media_files ADD COLUMN mime_type VARCHAR(100)")
+            print("  - Added column: media_files.mime_type")
+
+        # Helper function to check if constraint exists
+        def constraint_exists(constraint_name):
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM information_schema.table_constraints
+                    WHERE constraint_name = %s
+                )
+            """, (constraint_name,))
+            return cursor.fetchone()[0]
+
+        # Add missing foreign key constraints
+        if not constraint_exists('fk_groups_theme'):
+            try:
+                cursor.execute("""
+                    ALTER TABLE groups
+                    ADD CONSTRAINT fk_groups_theme
+                    FOREIGN KEY (theme_id) REFERENCES themes(id)
+                    ON DELETE SET NULL
+                """)
+                print("  - Added constraint: fk_groups_theme")
+            except Exception as e:
+                print(f"  - Note: Could not add fk_groups_theme constraint: {e}")
+
+        if not constraint_exists('fk_groups_admin'):
+            try:
+                cursor.execute("""
+                    ALTER TABLE groups
+                    ADD CONSTRAINT fk_groups_admin
+                    FOREIGN KEY (admin_user_id) REFERENCES users(id)
+                    ON DELETE SET NULL
+                """)
+                print("  - Added constraint: fk_groups_admin")
+            except Exception as e:
+                print(f"  - Note: Could not add fk_groups_admin constraint: {e}")
+
+        if not constraint_exists('fk_themes_creator'):
+            try:
+                cursor.execute("""
+                    ALTER TABLE themes
+                    ADD CONSTRAINT fk_themes_creator
+                    FOREIGN KEY (created_by) REFERENCES users(id)
+                    ON DELETE SET NULL
+                """)
+                print("  - Added constraint: fk_themes_creator")
+            except Exception as e:
+                print(f"  - Note: Could not add fk_themes_creator constraint: {e}")
+
+        if not constraint_exists('fk_templates_creator'):
+            try:
+                cursor.execute("""
+                    ALTER TABLE templates
+                    ADD CONSTRAINT fk_templates_creator
+                    FOREIGN KEY (created_by) REFERENCES users(id)
+                    ON DELETE SET NULL
+                """)
+                print("  - Added constraint: fk_templates_creator")
+            except Exception as e:
+                print(f"  - Note: Could not add fk_templates_creator constraint: {e}")
+
+        conn.commit()
+        print("Schema update completed successfully")
+
+        cursor.close()
+        conn.close()
+
+    except Exception as e:
+        print(f"Error updating schema: {e}")
+        # Don't exit on schema update errors - the table might already be correct
+        pass
 
 def insert_initial_data():
     """Insert initial data (roles, permissions, default theme)"""
@@ -652,6 +855,7 @@ if __name__ == "__main__":
 
     create_database()
     create_tables()
+    update_schema()  # Add missing columns to existing tables
     insert_initial_data()
     create_indexes()
 
