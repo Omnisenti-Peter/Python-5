@@ -142,7 +142,11 @@ def manage_users():
 @login_required
 @role_required(['SuperAdmin', 'Admin'])
 def create_user():
-    """Create a new user"""
+    """Create a new user
+
+    NOTE: When SuperAdmin creates an Admin user, an organization (group) is automatically created.
+    Admin users can only create User and SuperUser types within their organization.
+    """
     if request.method == 'POST':
         username = request.form.get('username')
         email = request.form.get('email')
@@ -167,8 +171,17 @@ def create_user():
             flash('Invalid role selected.', 'danger')
             return redirect(url_for('admin.create_user'))
 
-        # For SuperAdmin, allow selecting group; for Admin, use their group
+        # Handle group assignment based on user role being created
+        group_id = None
+        organization_name = None
+        organization_description = None
+
         if session['user_role'] == 'SuperAdmin':
+            # Check if creating an Admin user - need organization name
+            organization_name = request.form.get('organization_name', '').strip()
+            organization_description = request.form.get('organization_description', '').strip()
+
+            # For non-Admin roles, allow selecting existing group
             group_id = request.form.get('group_id')
             if group_id and group_id != '' and group_id != '0':
                 try:
@@ -179,6 +192,7 @@ def create_user():
             else:
                 group_id = None
         else:
+            # Admin users can only create within their own group
             group_id = session.get('group_id')
 
         try:
@@ -221,6 +235,40 @@ def create_user():
                         conn.close()
                         return redirect(url_for('admin.create_user'))
 
+                # SuperAdmin creating an Admin user: Auto-create organization
+                if session['user_role'] == 'SuperAdmin' and role_name == 'Admin':
+                    if not organization_name:
+                        flash('Organization name is required when creating an Admin user.', 'danger')
+                        cursor.close()
+                        conn.close()
+                        return redirect(url_for('admin.create_user'))
+
+                    # Check if organization name already exists
+                    cursor.execute("SELECT id FROM groups WHERE name = %s", (organization_name,))
+                    if cursor.fetchone():
+                        flash(f'Organization "{organization_name}" already exists. Please choose a different name.', 'danger')
+                        cursor.close()
+                        conn.close()
+                        return redirect(url_for('admin.create_user'))
+
+                    # Create the organization first (without admin_user_id, we'll update it after creating user)
+                    cursor.execute("""
+                        INSERT INTO groups (name, description, is_active)
+                        VALUES (%s, %s, TRUE)
+                        RETURNING id
+                    """, (organization_name, organization_description or f'Organization for {organization_name}'))
+
+                    group_id = cursor.fetchone()['id']
+                    logger.info(f"Created organization '{organization_name}' with ID {group_id}")
+
+                # Validate: Non-Admin users created by SuperAdmin should have a group selected
+                if session['user_role'] == 'SuperAdmin' and role_name != 'Admin' and role_name != 'SuperAdmin':
+                    if not group_id:
+                        flash('Please select an organization for this user.', 'danger')
+                        cursor.close()
+                        conn.close()
+                        return redirect(url_for('admin.create_user'))
+
                 # Create user
                 password_hash = generate_password_hash(password)
                 cursor.execute("""
@@ -233,6 +281,14 @@ def create_user():
                 ))
 
                 user_id = cursor.fetchone()['id']
+
+                # If we created an Admin user with a new organization, link them
+                if session['user_role'] == 'SuperAdmin' and role_name == 'Admin' and group_id:
+                    cursor.execute("""
+                        UPDATE groups SET admin_user_id = %s WHERE id = %s
+                    """, (user_id, group_id))
+                    logger.info(f"Linked Admin user {user_id} to organization {group_id}")
+
                 conn.commit()
                 cursor.close()
                 conn.close()
@@ -461,7 +517,12 @@ def manage_groups():
 @login_required
 @role_required(['SuperAdmin'])
 def create_group():
-    """Create a new group"""
+    """Create a new organization (group) - Special cases only
+
+    NOTE: Organizations are normally created automatically when creating Admin users.
+    This route is for special cases like creating an organization without an admin yet,
+    or reassigning existing admins to new organizations.
+    """
     if request.method == 'POST':
         name = request.form.get('name')
         description = request.form.get('description')
@@ -942,3 +1003,121 @@ def update_api_settings():
     except Exception as e:
         logger.error(f"Error updating API settings: {e}")
         return jsonify({'success': False, 'message': 'Error updating setting'}), 500
+
+@bp.route('/settings', methods=['GET', 'POST'])
+@login_required
+@role_required(['Admin'])
+def organization_settings():
+    """Organization settings page for Admin users
+
+    Allows Admin users to:
+    - View their organization details
+    - Select and apply themes to their organization
+    - Edit Contact Us and About Us pages
+    """
+    group_id = session.get('group_id')
+
+    if not group_id:
+        flash('You must be assigned to an organization to access settings.', 'danger')
+        return redirect(url_for('admin.dashboard'))
+
+    if request.method == 'POST':
+        try:
+            conn = get_db_connection()
+            if conn:
+                cursor = conn.cursor()
+
+                # Get form data
+                theme_id = request.form.get('theme_id')
+                contact_page_content = request.form.get('contact_page_content')
+                about_page_content = request.form.get('about_page_content')
+
+                # Convert theme_id to int or None
+                if theme_id and theme_id != '' and theme_id != '0':
+                    try:
+                        theme_id = int(theme_id)
+                    except ValueError:
+                        theme_id = None
+                else:
+                    theme_id = None
+
+                # Update organization settings
+                cursor.execute("""
+                    UPDATE groups
+                    SET theme_id = %s,
+                        contact_page_content = %s,
+                        about_page_content = %s,
+                        updated_at = %s
+                    WHERE id = %s
+                """, (theme_id, contact_page_content, about_page_content,
+                      datetime.utcnow(), group_id))
+
+                conn.commit()
+                cursor.close()
+                conn.close()
+
+                # Log activity
+                log_user_activity(session['user_id'], 'update_organization_settings', 'group', group_id)
+
+                flash('Organization settings updated successfully!', 'success')
+                return redirect(url_for('admin.organization_settings'))
+
+        except Exception as e:
+            flash(f'Error updating settings: {str(e)}', 'danger')
+            logger.error(f"Error updating organization settings: {e}")
+
+    # GET request - show settings form
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # Get organization details
+            cursor.execute("""
+                SELECT g.*, t.name as theme_name, u.username as admin_username, u.email as admin_email
+                FROM groups g
+                LEFT JOIN themes t ON g.theme_id = t.id
+                LEFT JOIN users u ON g.admin_user_id = u.id
+                WHERE g.id = %s
+            """, (group_id,))
+            organization = cursor.fetchone()
+
+            if not organization:
+                flash('Organization not found.', 'danger')
+                cursor.close()
+                conn.close()
+                return redirect(url_for('admin.dashboard'))
+
+            # Get themes available for this organization
+            cursor.execute("""
+                SELECT id, name, description, theme_type, created_at
+                FROM themes
+                WHERE group_id = %s AND is_active = TRUE
+                ORDER BY name
+            """, (group_id,))
+            themes = cursor.fetchall()
+
+            # Get organization statistics
+            cursor.execute("""
+                SELECT
+                    (SELECT COUNT(*) FROM users WHERE group_id = %s) as total_users,
+                    (SELECT COUNT(*) FROM blog_posts WHERE group_id = %s) as total_posts,
+                    (SELECT COUNT(*) FROM pages WHERE group_id = %s) as total_pages
+            """, (group_id, group_id, group_id))
+            stats = cursor.fetchone()
+
+            cursor.close()
+            conn.close()
+
+            return render_template('admin/settings.html',
+                                 organization=organization,
+                                 themes=themes,
+                                 stats=stats)
+        else:
+            flash('Database connection error', 'danger')
+            return redirect(url_for('admin.dashboard'))
+
+    except Exception as e:
+        flash('Error loading settings', 'danger')
+        logger.error(f"Error loading organization settings: {e}")
+        return redirect(url_for('admin.dashboard'))

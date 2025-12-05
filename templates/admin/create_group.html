@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Create Group - Admin{% endblock %}
+{% block title %}Create Organization - Admin{% endblock %}
 
 {% set breadcrumbs = make_breadcrumbs(
     ('Home', url_for('index')),
     ('Admin', url_for('admin.dashboard')),
-    ('Groups', url_for('admin.manage_groups')),
-    ('Create Group', None)
+    ('Organizations', url_for('admin.manage_groups')),
+    ('Create Organization', None)
 ) %}
 
 {% block content %}
@@ -15,25 +15,43 @@
         <!-- Header -->
         <div class="mb-8">
             <h1 class="text-4xl font-bold mb-2 flapper-accent">
-                <i class="fas fa-plus-circle mr-3"></i>Create New Group
+                <i class="fas fa-plus-circle mr-3"></i>Create New Organization
             </h1>
             <p class="text-xl text-gray-600">Set up a new organization</p>
+        </div>
+
+        <!-- Important Notice -->
+        <div class="bg-amber-50 border-l-4 border-amber-400 p-6 mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-info-circle text-amber-600 text-2xl"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-semibold text-amber-800 mb-2">Note: Organizations are Auto-Created</h3>
+                    <p class="text-sm text-amber-700 mb-2">
+                        Normally, organizations are automatically created when you create an Admin user.
+                    </p>
+                    <p class="text-sm text-amber-700">
+                        Use this form only for special cases, such as creating an organization without an Admin user yet, or reassigning existing Admins to new organizations.
+                    </p>
+                </div>
+            </div>
         </div>
 
         <!-- Form -->
         <div class="vintage-card p-8">
             <form method="POST" action="{{ url_for('admin.create_group') }}">
-                <!-- Group Name -->
+                <!-- Organization Name -->
                 <div class="mb-6">
                     <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">
-                        Group Name <span class="text-red-500">*</span>
+                        Organization Name <span class="text-red-500">*</span>
                     </label>
                     <input type="text"
                            id="name"
                            name="name"
                            required
                            class="vintage-input w-full"
-                           placeholder="Enter group name">
+                           placeholder="Enter organization name">
                     <p class="text-xs text-gray-500 mt-1">This will be the organization's display name</p>
                 </div>
 

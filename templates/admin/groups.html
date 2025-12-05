@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Manage Groups - Admin{% endblock %}
+{% block title %}Manage Organizations - Admin{% endblock %}
 
 {% set breadcrumbs = make_breadcrumbs(
     ('Home', url_for('index')),
     ('Admin', url_for('admin.dashboard')),
-    ('Manage Groups', None)
+    ('Manage Organizations', None)
 ) %}
 
 {% block content %}
@@ -15,12 +15,12 @@
         <div class="mb-8 flex items-center justify-between">
             <div>
                 <h1 class="text-4xl font-bold mb-2 flapper-accent">
-                    <i class="fas fa-building mr-3"></i>Manage Groups
+                    <i class="fas fa-building mr-3"></i>Manage Organizations
                 </h1>
                 <p class="text-xl text-gray-600">View and manage all organizations</p>
             </div>
             <a href="{{ url_for('admin.create_group') }}" class="vintage-button">
-                <i class="fas fa-plus mr-2"></i>Create New Group
+                <i class="fas fa-plus mr-2"></i>Create New Organization
             </a>
         </div>
 
@@ -30,13 +30,13 @@
                 <div class="text-3xl font-bold text-green-600 mb-2">
                     {{ groups|selectattr('is_active', 'equalto', true)|list|length }}
                 </div>
-                <div class="text-gray-600">Active Groups</div>
+                <div class="text-gray-600">Active Organizations</div>
             </div>
             <div class="vintage-card p-6 text-center">
                 <div class="text-3xl font-bold text-gray-600 mb-2">
                     {{ groups|selectattr('is_active', 'equalto', false)|list|length }}
                 </div>
-                <div class="text-gray-600">Inactive Groups</div>
+                <div class="text-gray-600">Inactive Organizations</div>
             </div>
             <div class="vintage-card p-6 text-center">
                 <div class="text-3xl font-bold text-blue-600 mb-2">

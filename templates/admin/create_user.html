@@ -87,21 +87,66 @@
                     {% endif %}
                 </div>
 
-                <!-- Group (SuperAdmin only) -->
-                {% if groups %}
-                <div class="mb-6">
+                <!-- Organization Fields (SuperAdmin creating Admin user) -->
+                {% if session.user_role == 'SuperAdmin' %}
+                <div id="organization-section" class="mb-6" style="display: none;">
+                    <div class="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-building text-amber-600"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-semibold text-amber-800 mb-1">Creating an Organization</h3>
+                                <p class="text-xs text-amber-700">
+                                    When you create an Admin user, a new organization is automatically created and linked to that user.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="organization_name" class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-building mr-1"></i>Organization Name *
+                        </label>
+                        <input type="text" id="organization_name" name="organization_name"
+                               class="vintage-input w-full" placeholder="e.g., Acme Corporation">
+                        <p class="text-xs text-gray-500 mt-1">
+                            This will be the name of the new organization
+                        </p>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="organization_description" class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-align-left mr-1"></i>Organization Description
+                        </label>
+                        <textarea id="organization_description" name="organization_description" rows="3"
+                                  class="vintage-input w-full" placeholder="Brief description of the organization"></textarea>
+                    </div>
+                </div>
+
+                <!-- Existing Organization Selection (for non-Admin roles) -->
+                <div id="group-selection-section" class="mb-6" style="display: none;">
                     <label for="group_id" class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-building mr-1"></i>Group/Organization
+                        <i class="fas fa-building mr-1"></i>Organization *
                     </label>
                     <select id="group_id" name="group_id" class="vintage-input w-full">
-                        <option value="">No Group (Platform-wide)</option>
-                        {% for group in groups %}
-                        <option value="{{ group.id }}">{{ group.name }}</option>
-                        {% endfor %}
+                        <option value="">Select Organization</option>
+                        {% if groups %}
+                            {% for group in groups %}
+                            <option value="{{ group.id }}">{{ group.name }}</option>
+                            {% endfor %}
+                        {% else %}
+                            <option value="" disabled>No organizations available yet</option>
+                        {% endif %}
                     </select>
                     <p class="text-xs text-gray-500 mt-1">
-                        <i class="fas fa-info-circle mr-1"></i>Assign the user to a specific organization
+                        <i class="fas fa-info-circle mr-1"></i>Assign the user to an existing organization
                     </p>
+                    {% if not groups %}
+                    <p class="text-xs text-amber-600 mt-2">
+                        <i class="fas fa-exclamation-triangle mr-1"></i>You need to create an Admin user first to create an organization.
+                    </p>
+                    {% endif %}
                 </div>
                 {% else %}
                 <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
@@ -111,7 +156,7 @@
                         </div>
                         <div class="ml-3">
                             <p class="text-sm text-blue-700">
-                                <strong>Note:</strong> This user will be created in your group automatically.
+                                <strong>Note:</strong> This user will be created in your organization automatically.
                             </p>
                         </div>
                     </div>
@@ -131,4 +176,60 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Handle role selection to show/hide organization fields
+    document.addEventListener('DOMContentLoaded', function() {
+        const roleSelect = document.getElementById('role_id');
+        const organizationSection = document.getElementById('organization-section');
+        const groupSelectionSection = document.getElementById('group-selection-section');
+        const organizationNameInput = document.getElementById('organization_name');
+        const groupSelect = document.getElementById('group_id');
+
+        if (roleSelect && (organizationSection || groupSelectionSection)) {
+            roleSelect.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const selectedRoleName = selectedOption.text.split(' -')[0].trim();
+
+                // Reset validation
+                if (organizationNameInput) {
+                    organizationNameInput.removeAttribute('required');
+                }
+                if (groupSelect) {
+                    groupSelect.removeAttribute('required');
+                }
+
+                // Hide both sections initially
+                if (organizationSection) {
+                    organizationSection.style.display = 'none';
+                }
+                if (groupSelectionSection) {
+                    groupSelectionSection.style.display = 'none';
+                }
+
+                // Show appropriate section based on role
+                if (selectedRoleName === 'Admin') {
+                    // Creating Admin user - show organization creation section
+                    if (organizationSection) {
+                        organizationSection.style.display = 'block';
+                        if (organizationNameInput) {
+                            organizationNameInput.setAttribute('required', 'required');
+                        }
+                    }
+                } else if (selectedRoleName === 'User' || selectedRoleName === 'SuperUser') {
+                    // Creating User or SuperUser - show organization selection
+                    if (groupSelectionSection) {
+                        groupSelectionSection.style.display = 'block';
+                        if (groupSelect) {
+                            groupSelect.setAttribute('required', 'required');
+                        }
+                    }
+                }
+                // SuperAdmin doesn't need organization assignment
+            });
+        }
+    });
+</script>
 {% endblock %}

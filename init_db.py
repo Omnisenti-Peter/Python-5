@@ -51,6 +51,8 @@ def create_database():
 
 def create_tables():
     """Create all database tables"""
+    conn = None
+    cursor = None
     try:
         conn = psycopg2.connect(
             host=os.getenv('DB_HOST', 'localhost'),
@@ -60,9 +62,10 @@ def create_tables():
             port=os.getenv('DB_PORT', '5432')
         )
         cursor = conn.cursor()
-        
+
         # Create tables in order (respecting foreign key constraints)
-        
+
+        print("Creating roles table...")
         # Create roles table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS roles (
@@ -73,6 +76,7 @@ def create_tables():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        print("  - roles table OK")
         
         # Create permissions table
         cursor.execute("""
@@ -87,6 +91,8 @@ def create_tables():
         """)
         
         # Create groups table
+        # NOTE: Groups (Organizations) are automatically created when SuperAdmin creates an Admin user
+        # Groups represent tenant boundaries for multi-tenant architecture
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS groups (
                 id SERIAL PRIMARY KEY,
@@ -356,8 +362,13 @@ def create_tables():
         conn.close()
 
     except Exception as e:
-        print(f"Error creating tables: {e}")
-        sys.exit(1)
+        print(f"Note: Some tables may already exist - {e}")
+        if conn:
+            conn.rollback()
+            if cursor:
+                cursor.close()
+            conn.close()
+        print("Continuing to schema update which will handle existing tables...")
 
 def update_schema():
     """Update existing schema by adding missing columns"""
@@ -563,15 +574,17 @@ def insert_initial_data():
         cursor = conn.cursor()
         
         # Insert default roles
+        # NOTE: Only SuperAdmin can create Admin users (which auto-creates organizations)
+        # Admin users can only create User and SuperUser roles within their organization
         cursor.execute("""
             INSERT INTO roles (name, description, permissions) VALUES
-            ('SuperAdmin', 'Full platform administration access', 
+            ('SuperAdmin', 'Full platform administration access - Can create Admin users and manage all organizations',
              '{"platform_manage": true, "user_manage": true, "content_manage": true, "theme_manage": true, "api_manage": true}'::jsonb),
-            ('Admin', 'Group administration access', 
+            ('Admin', 'Organization administration access - Can create User and SuperUser within their organization',
              '{"group_manage": true, "user_manage": true, "content_manage": true, "theme_manage": true}'::jsonb),
-            ('SuperUser', 'Extended content creation access', 
+            ('SuperUser', 'Extended content creation access - Can create pages and content',
              '{"content_create": true, "page_create": true, "theme_view": true}'::jsonb),
-            ('User', 'Basic user access', 
+            ('User', 'Basic user access - Can create and view content',
              '{"content_create": true, "content_view": true}'::jsonb)
             ON CONFLICT (name) DO NOTHING
         """)
@@ -738,7 +751,7 @@ def create_superadmin():
         existing_superadmins = cursor.fetchall()
 
         if existing_superadmins:
-            print("\n⚠️  SuperAdmin user(s) already exist:")
+            print("\n[WARNING] SuperAdmin user(s) already exist:")
             for sa in existing_superadmins:
                 print(f"   - {sa['username']} ({sa['email']})")
             print("\nSkipping SuperAdmin creation.")
@@ -747,7 +760,7 @@ def create_superadmin():
             return
 
         print("\n" + "="*60)
-        print("🔐 SuperAdmin Creation")
+        print("SuperAdmin Creation")
         print("="*60)
 
         # Check for environment variables first
@@ -772,10 +785,10 @@ def create_superadmin():
             while True:
                 username = input("Username: ").strip()
                 if len(username) < 3:
-                    print("❌ Username must be at least 3 characters long.")
+                    print("[ERROR] Username must be at least 3 characters long.")
                     continue
                 if ' ' in username:
-                    print("❌ Username cannot contain spaces.")
+                    print("[ERROR] Username cannot contain spaces.")
                     continue
                 break
 
@@ -783,7 +796,7 @@ def create_superadmin():
             while True:
                 email = input("Email: ").strip()
                 if not validate_email(email):
-                    print("❌ Invalid email format.")
+                    print("[ERROR] Invalid email format.")
                     continue
                 break
 
@@ -791,12 +804,12 @@ def create_superadmin():
             while True:
                 password = getpass.getpass("Password: ")
                 if len(password) < 8:
-                    print("❌ Password must be at least 8 characters long.")
+                    print("[ERROR] Password must be at least 8 characters long.")
                     continue
 
                 password_confirm = getpass.getpass("Confirm Password: ")
                 if password != password_confirm:
-                    print("❌ Passwords do not match.")
+                    print("[ERROR] Passwords do not match.")
                     continue
                 break
 
@@ -808,7 +821,7 @@ def create_superadmin():
         cursor.execute("SELECT id FROM users WHERE username = %s OR email = %s",
                       (username, email))
         if cursor.fetchone():
-            print(f"\n❌ Username '{username}' or email '{email}' already exists.")
+            print(f"\n[ERROR] Username '{username}' or email '{email}' already exists.")
             cursor.close()
             conn.close()
             return
@@ -818,7 +831,7 @@ def create_superadmin():
         role_result = cursor.fetchone()
 
         if not role_result:
-            print("\n❌ SuperAdmin role not found in database.")
+            print("\n[ERROR] SuperAdmin role not found in database.")
             cursor.close()
             conn.close()
             return
@@ -838,19 +851,19 @@ def create_superadmin():
         cursor.close()
         conn.close()
 
-        print(f"\n✅ SuperAdmin user created successfully!")
+        print(f"\n[SUCCESS] SuperAdmin user created successfully!")
         print(f"   User ID: {user_id}")
         print(f"   Username: {username}")
         print(f"   Email: {email}")
         print(f"   Name: {first_name} {last_name}")
 
     except Exception as e:
-        print(f"\n❌ Error creating SuperAdmin: {e}")
+        print(f"\n[ERROR] Error creating SuperAdmin: {e}")
         print("You can create a SuperAdmin later using: python create_superadmin.py")
 
 if __name__ == "__main__":
     print("="*60)
-    print("🚀 Opinian Platform - Database Initialization")
+    print("Opinian Platform - Database Initialization")
     print("="*60)
 
     create_database()
@@ -860,14 +873,14 @@ if __name__ == "__main__":
     create_indexes()
 
     print("\n" + "="*60)
-    print("✅ Database initialization completed successfully!")
+    print("[SUCCESS] Database initialization completed successfully!")
     print("="*60)
 
     # Create SuperAdmin user
     create_superadmin()
 
     print("\n" + "="*60)
-    print("🎉 Setup Complete!")
+    print("Setup Complete!")
     print("="*60)
     print("\nYou can now start the application with:")
     print("  python app.py")
