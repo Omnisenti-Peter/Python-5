@@ -310,6 +310,16 @@
                     <a href="{{ url_for('pages.about_us') }}" class="hover:text-yellow-300 transition-colors">
                         <i class="fas fa-info-circle mr-1"></i>About
                     </a>
+
+                    <!-- Search Bar -->
+                    <form action="{{ url_for('search.search_results') }}" method="GET" class="relative">
+                        <input type="text" name="q" placeholder="Search..."
+                               class="bg-gray-800 text-white px-4 py-2 pr-10 rounded-lg border border-gray-700 focus:border-yellow-500 focus:outline-none w-64"
+                               value="{{ request.args.get('q', '') }}">
+                        <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-yellow-400 hover:text-yellow-300">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </form>
                     
                     {% if session.user_id %}
                         <!-- Authenticated User Menu -->

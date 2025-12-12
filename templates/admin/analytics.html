@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics Dashboard - Opinian{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid var(--accent-color);
+    }
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: var(--accent-color);
+    }
+    .stat-label {
+        color: #666;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        margin-top: 0.5rem;
+    }
+    .chart-container {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-top: 1.5rem;
+    }
+    .table-container {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-top: 1.5rem;
+        overflow-x: auto;
+    }
+    .analytics-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .analytics-table th {
+        background: #f8f9fa;
+        padding: 0.75rem;
+        text-align: left;
+        font-weight: 600;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .analytics-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .analytics-table tr:hover {
+        background: #f8f9fa;
+    }
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    .badge-primary {
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+    .badge-success {
+        background: #e8f5e9;
+        color: #388e3c;
+    }
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        color: #333;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-4xl font-bold flapper-accent mb-2" style="font-family: var(--heading-font);">
+                <i class="fas fa-chart-line mr-3"></i>Analytics Dashboard
+            </h1>
+            <p class="text-gray-600">Comprehensive platform metrics and insights</p>
+        </div>
+        <a href="{{ url_for('admin.dashboard') }}" class="vintage-button">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+        </a>
+    </div>
+
+    {% if overview_stats %}
+        <!-- Overview Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
+            {% if user_role == 'SuperAdmin' %}
+            <div class="stat-card">
+                <div class="stat-value">{{ overview_stats.total_groups or 0 }}</div>
+                <div class="stat-label"><i class="fas fa-building mr-2"></i>Organizations</div>
+            </div>
+            {% endif %}
+
+            <div class="stat-card">
+                <div class="stat-value">{{ overview_stats.total_users or 0 }}</div>
+                <div class="stat-label"><i class="fas fa-users mr-2"></i>Active Users</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-value">{{ overview_stats.total_blog_posts or 0 }}</div>
+                <div class="stat-label"><i class="fas fa-blog mr-2"></i>Blog Posts</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-value">{{ overview_stats.total_pages or 0 }}</div>
+                <div class="stat-label"><i class="fas fa-file-alt mr-2"></i>Pages</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-value">{{ overview_stats.total_comments or 0 }}</div>
+                <div class="stat-label"><i class="fas fa-comments mr-2"></i>Comments</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-value">{{ overview_stats.total_blog_views or 0 }}</div>
+                <div class="stat-label"><i class="fas fa-eye mr-2"></i>Blog Views</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-value">{{ overview_stats.total_page_views or 0 }}</div>
+                <div class="stat-label"><i class="fas fa-eye mr-2"></i>Page Views</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-value">{{ (overview_stats.total_blog_views + overview_stats.total_page_views) or 0 }}</div>
+                <div class="stat-label"><i class="fas fa-chart-bar mr-2"></i>Total Views</div>
+            </div>
+        </div>
+
+        <!-- Activity Timeline Chart -->
+        {% if activity_timeline %}
+        <div class="chart-container">
+            <h2 class="text-xl font-bold mb-4"><i class="fas fa-calendar-alt mr-2"></i>Activity Timeline (Last 30 Days)</h2>
+            <canvas id="activityChart" height="80"></canvas>
+        </div>
+        {% endif %}
+
+        <!-- Popular Content Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <!-- Popular Blog Posts -->
+            {% if popular_posts %}
+            <div class="table-container">
+                <h2 class="text-xl font-bold mb-4"><i class="fas fa-fire mr-2"></i>Top Blog Posts by Views</h2>
+                <table class="analytics-table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Views</th>
+                            <th>Comments</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for post in popular_posts %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('blog.view_post', slug=post.slug) }}"
+                                   class="text-blue-600 hover:underline">
+                                    {{ post.title }}
+                                </a>
+                            </td>
+                            <td>{{ post.first_name }} {{ post.last_name }}</td>
+                            <td><span class="badge badge-primary">{{ post.view_count }}</span></td>
+                            <td><span class="badge badge-success">{{ post.comment_count }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- Popular Pages -->
+            {% if popular_pages %}
+            <div class="table-container">
+                <h2 class="text-xl font-bold mb-4"><i class="fas fa-file-alt mr-2"></i>Top Pages by Views</h2>
+                <table class="analytics-table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Views</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for page in popular_pages %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('pages.view_page', slug=page.slug) }}"
+                                   class="text-blue-600 hover:underline">
+                                    {{ page.title }}
+                                </a>
+                            </td>
+                            <td>{{ page.first_name }} {{ page.last_name }}</td>
+                            <td><span class="badge badge-primary">{{ page.view_count }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- User Engagement Section -->
+        {% if top_contributors %}
+        <div class="table-container">
+            <h2 class="text-xl font-bold mb-4"><i class="fas fa-trophy mr-2"></i>Top Contributors</h2>
+            <table class="analytics-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Posts Created</th>
+                        <th>Comments Made</th>
+                        <th>Total Views</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in top_contributors %}
+                    <tr>
+                        <td>
+                            <strong>{{ user.first_name }} {{ user.last_name }}</strong>
+                            <div class="text-gray-500 text-sm">@{{ user.username }}</div>
+                        </td>
+                        <td><span class="badge badge-primary">{{ user.post_count }}</span></td>
+                        <td><span class="badge badge-success">{{ user.comment_count }}</span></td>
+                        <td><span class="badge badge-primary">{{ user.total_views }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- Tag Performance & Most Commented Posts -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <!-- Tag Statistics -->
+            {% if tag_stats %}
+            <div class="table-container">
+                <h2 class="text-xl font-bold mb-4"><i class="fas fa-tags mr-2"></i>Popular Tags</h2>
+                <table class="analytics-table">
+                    <thead>
+                        <tr>
+                            <th>Tag</th>
+                            <th>Posts</th>
+                            <th>Avg Views</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tag in tag_stats %}
+                        <tr>
+                            <td>
+                                <span class="badge badge-primary">{{ tag.tag.strip() }}</span>
+                            </td>
+                            <td>{{ tag.post_count }}</td>
+                            <td>{{ "%.1f"|format(tag.avg_views) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- Most Commented Posts -->
+            {% if most_commented %}
+            <div class="table-container">
+                <h2 class="text-xl font-bold mb-4"><i class="fas fa-comment-dots mr-2"></i>Most Commented Posts</h2>
+                <table class="analytics-table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Comments</th>
+                            <th>Views</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for post in most_commented %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('blog.view_post', slug=post.slug) }}"
+                                   class="text-blue-600 hover:underline">
+                                    {{ post.title[:50] }}{% if post.title|length > 50 %}...{% endif %}
+                                </a>
+                            </td>
+                            <td><span class="badge badge-success">{{ post.comment_count }}</span></td>
+                            <td><span class="badge badge-primary">{{ post.view_count }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+
+    {% else %}
+        <!-- No Data Message -->
+        <div class="vintage-card p-8 text-center">
+            <i class="fas fa-chart-line text-6xl text-gray-400 mb-4"></i>
+            <p class="text-xl text-gray-600">No analytics data available yet.</p>
+            <p class="text-gray-500 mt-2">Start creating content to see insights here!</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    {% if activity_timeline %}
+    // Activity Timeline Chart
+    const activityCtx = document.getElementById('activityChart');
+    if (activityCtx) {
+        const activityData = {{ activity_timeline | tojson }};
+
+        // Reverse to show chronologically (oldest to newest)
+        activityData.reverse();
+
+        const labels = activityData.map(item => {
+            const date = new Date(item.date);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+
+        const postsData = activityData.map(item => item.new_posts || 0);
+        const pagesData = activityData.map(item => item.new_pages || 0);
+        const usersData = activityData.map(item => item.new_users || 0);
+
+        new Chart(activityCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'New Posts',
+                        data: postsData,
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.1
+                    },
+                    {
+                        label: 'New Pages',
+                        data: pagesData,
+                        borderColor: 'rgb(54, 162, 235)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        tension: 0.1
+                    },
+                    {
+                        label: 'New Users',
+                        data: usersData,
+                        borderColor: 'rgb(255, 159, 64)',
+                        backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+</script>
+{% endblock %}

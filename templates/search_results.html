@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}Search Results{% if query %} for "{{ query }}"{% endif %} - Opinian{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="container mx-auto px-4">
+        <!-- Search Header -->
+        <div class="vintage-card p-8 mb-8">
+            <h1 class="text-4xl font-bold mb-4 flapper-accent" style="font-family: var(--heading-font);">
+                <i class="fas fa-search mr-3"></i>Search Results
+            </h1>
+
+            {% if query %}
+                <p class="text-gray-600 text-lg mb-6">
+                    Showing results for: <strong class="text-gray-900">"{{ query }}"</strong>
+                </p>
+            {% endif %}
+
+            <!-- Search Form -->
+            <form action="{{ url_for('search.search_results') }}" method="GET" class="mb-6">
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <input type="text" name="q" value="{{ query }}"
+                               class="vintage-input w-full"
+                               placeholder="Search for blog posts and pages...">
+                    </div>
+                    <button type="submit" class="vintage-button">
+                        <i class="fas fa-search mr-2"></i>Search
+                    </button>
+                </div>
+            </form>
+
+            <!-- Filters and Stats -->
+            <div class="flex flex-wrap items-center gap-4 text-sm">
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-600">Type:</span>
+                    <a href="{{ url_for('search.search_results', q=query, type='all', author=filters.author, tag=filters.tag, group=filters.group, sort=filters.sort) }}"
+                       class="px-3 py-1 rounded {% if filters.type == 'all' %}bg-yellow-500 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}">
+                        All ({{ stats.total }})
+                    </a>
+                    <a href="{{ url_for('search.search_results', q=query, type='posts', author=filters.author, tag=filters.tag, group=filters.group, sort=filters.sort) }}"
+                       class="px-3 py-1 rounded {% if filters.type == 'posts' %}bg-yellow-500 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}">
+                        Posts ({{ stats.posts }})
+                    </a>
+                    <a href="{{ url_for('search.search_results', q=query, type='pages', author=filters.author, tag=filters.tag, group=filters.group, sort=filters.sort) }}"
+                       class="px-3 py-1 rounded {% if filters.type == 'pages' %}bg-yellow-500 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}">
+                        Pages ({{ stats.pages }})
+                    </a>
+                </div>
+
+                <span class="text-gray-400">|</span>
+
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-600">Sort:</span>
+                    <a href="{{ url_for('search.search_results', q=query, type=filters.type, author=filters.author, tag=filters.tag, group=filters.group, sort='relevance') }}"
+                       class="px-3 py-1 rounded {% if filters.sort == 'relevance' %}bg-yellow-500 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}">
+                        Relevance
+                    </a>
+                    <a href="{{ url_for('search.search_results', q=query, type=filters.type, author=filters.author, tag=filters.tag, group=filters.group, sort='date') }}"
+                       class="px-3 py-1 rounded {% if filters.sort == 'date' %}bg-yellow-500 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}">
+                        Date
+                    </a>
+                    {% if filters.type != 'pages' %}
+                        <a href="{{ url_for('search.search_results', q=query, type=filters.type, author=filters.author, tag=filters.tag, group=filters.group, sort='views') }}"
+                           class="px-3 py-1 rounded {% if filters.sort == 'views' %}bg-yellow-500 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}">
+                            Views
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if error %}
+                <div class="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    <i class="fas fa-exclamation-circle mr-2"></i>{{ error }}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Results -->
+        {% if stats.total > 0 %}
+            <!-- Blog Posts -->
+            {% if results.posts %}
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold mb-4 flapper-accent">
+                        <i class="fas fa-blog mr-2"></i>Blog Posts ({{ stats.posts }})
+                    </h2>
+                    <div class="space-y-6">
+                        {% for post in results.posts %}
+                            <div class="vintage-card p-6 hover:shadow-2xl transition-shadow">
+                                <div class="flex gap-6">
+                                    {% if post.featured_image_url %}
+                                        <div class="flex-shrink-0">
+                                            <img src="/{{ post.featured_image_url }}" alt="{{ post.title }}"
+                                                 class="w-32 h-32 object-cover rounded-lg">
+                                        </div>
+                                    {% endif %}
+                                    <div class="flex-1">
+                                        <h3 class="text-2xl font-bold mb-2">
+                                            <a href="{{ url_for('blog.view_post', slug=post.slug) }}"
+                                               class="text-gray-900 hover:text-yellow-600 transition-colors">
+                                                {{ post.title }}
+                                            </a>
+                                        </h3>
+                                        <div class="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-3">
+                                            <span>
+                                                <i class="fas fa-user mr-1"></i>
+                                                <a href="{{ url_for('search.search_results', q=query, author=post.username) }}"
+                                                   class="text-yellow-600 hover:text-yellow-700">
+                                                    {{ post.first_name }} {{ post.last_name }}
+                                                </a>
+                                            </span>
+                                            <span>
+                                                <i class="fas fa-calendar mr-1"></i>
+                                                {{ post.published_at.strftime('%B %d, %Y') }}
+                                            </span>
+                                            {% if post.group_name %}
+                                                <span>
+                                                    <i class="fas fa-building mr-1"></i>
+                                                    <a href="{{ url_for('search.search_results', q=query, group=post.group_name) }}"
+                                                       class="text-yellow-600 hover:text-yellow-700">
+                                                        {{ post.group_name }}
+                                                    </a>
+                                                </span>
+                                            {% endif %}
+                                            <span>
+                                                <i class="fas fa-eye mr-1"></i>{{ post.view_count or 0 }} views
+                                            </span>
+                                            <span>
+                                                <i class="fas fa-comments mr-1"></i>{{ post.comment_count or 0 }} comments
+                                            </span>
+                                        </div>
+                                        {% if post.excerpt %}
+                                            <p class="text-gray-700 mb-3">{{ post.excerpt|striptags|truncate(200) }}</p>
+                                        {% else %}
+                                            <p class="text-gray-700 mb-3">{{ post.content|striptags|truncate(200) }}</p>
+                                        {% endif %}
+                                        {% if post.tags %}
+                                            <div class="flex flex-wrap gap-2">
+                                                {% for tag in post.tags %}
+                                                    <a href="{{ url_for('search.search_results', q=query, tag=tag) }}"
+                                                       class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full hover:bg-yellow-200">
+                                                        <i class="fas fa-tag mr-1"></i>{{ tag }}
+                                                    </a>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Pages -->
+            {% if results.pages %}
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold mb-4 flapper-accent">
+                        <i class="fas fa-file-alt mr-2"></i>Pages ({{ stats.pages }})
+                    </h2>
+                    <div class="space-y-6">
+                        {% for page in results.pages %}
+                            <div class="vintage-card p-6 hover:shadow-2xl transition-shadow">
+                                <h3 class="text-2xl font-bold mb-2">
+                                    <a href="{{ url_for('pages.view_page', slug=page.slug) }}"
+                                       class="text-gray-900 hover:text-yellow-600 transition-colors">
+                                        {{ page.title }}
+                                    </a>
+                                </h3>
+                                <div class="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-3">
+                                    <span>
+                                        <i class="fas fa-user mr-1"></i>
+                                        <a href="{{ url_for('search.search_results', q=query, author=page.username) }}"
+                                           class="text-yellow-600 hover:text-yellow-700">
+                                            {{ page.first_name }} {{ page.last_name }}
+                                        </a>
+                                    </span>
+                                    <span>
+                                        <i class="fas fa-calendar mr-1"></i>
+                                        {{ page.published_at.strftime('%B %d, %Y') }}
+                                    </span>
+                                    {% if page.group_name %}
+                                        <span>
+                                            <i class="fas fa-building mr-1"></i>
+                                            <a href="{{ url_for('search.search_results', q=query, group=page.group_name) }}"
+                                               class="text-yellow-600 hover:text-yellow-700">
+                                                {{ page.group_name }}
+                                            </a>
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-gray-700">{{ page.content|striptags|truncate(200) }}</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Pagination -->
+            {% if total_pages > 1 %}
+                <div class="flex justify-center items-center gap-2 mt-8">
+                    {% if page > 1 %}
+                        <a href="{{ url_for('search.search_results', q=query, type=filters.type, author=filters.author, tag=filters.tag, group=filters.group, sort=filters.sort, page=page-1) }}"
+                           class="vintage-button">
+                            <i class="fas fa-chevron-left mr-2"></i>Previous
+                        </a>
+                    {% endif %}
+
+                    <span class="px-4 py-2 bg-gray-100 rounded-lg">
+                        Page {{ page }} of {{ total_pages }}
+                    </span>
+
+                    {% if page < total_pages %}
+                        <a href="{{ url_for('search.search_results', q=query, type=filters.type, author=filters.author, tag=filters.tag, group=filters.group, sort=filters.sort, page=page+1) }}"
+                           class="vintage-button">
+                            Next<i class="fas fa-chevron-right ml-2"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+        {% else %}
+            <!-- No Results -->
+            <div class="vintage-card p-12 text-center">
+                <i class="fas fa-search text-gray-300 text-6xl mb-4"></i>
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">No results found</h2>
+                {% if query %}
+                    <p class="text-gray-600 mb-6">We couldn't find any posts or pages matching "{{ query }}"</p>
+                {% else %}
+                    <p class="text-gray-600 mb-6">Enter a search term to find blog posts and pages</p>
+                {% endif %}
+                <div class="space-y-2">
+                    <p class="text-sm text-gray-500">Try:</p>
+                    <ul class="text-sm text-gray-600">
+                        <li>Using different keywords</li>
+                        <li>Checking your spelling</li>
+                        <li>Using more general terms</li>
+                        <li>Removing filters</li>
+                    </ul>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

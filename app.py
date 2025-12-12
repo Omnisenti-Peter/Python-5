@@ -33,6 +33,15 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-pro
 app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_CONTENT_LENGTH', '10485760'))
 
+# Configure Flask-Mail
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', '587'))
+app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'True').lower() == 'true'
+app.config['MAIL_USE_SSL'] = os.getenv('MAIL_USE_SSL', 'False').lower() == 'true'
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', 'noreply@opinian.com')
+
 # Configure CORS
 CORS(app)
 
@@ -264,11 +273,16 @@ def register():
                 conn.commit()
                 cursor.close()
                 conn.close()
-                
+
                 # Log registration activity
                 log_user_activity(user_id, 'register')
-                
-                flash('Registration successful! Please log in.', 'success')
+
+                # Send welcome email
+                from email_service import send_welcome_email
+                user_name = f"{first_name} {last_name}"
+                send_welcome_email(email, user_name, username, app=app)
+
+                flash('Registration successful! Please check your email and log in.', 'success')
                 return redirect(url_for('login'))
                 
         except Exception as e:
@@ -283,10 +297,139 @@ def logout():
     user_id = session.get('user_id')
     if user_id:
         log_user_activity(user_id, 'logout')
-    
+
     session.clear()
     flash('You have been logged out.', 'info')
     return redirect(url_for('index'))
+
+
+# ============== PASSWORD RESET ROUTES ==============
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Request password reset"""
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+
+        if not email:
+            flash('Please enter your email address.', 'danger')
+            return render_template('forgot_password.html')
+
+        try:
+            conn = get_db_connection()
+            if conn:
+                cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+                # Find user by email
+                cursor.execute("SELECT id, username, first_name, last_name, email FROM users WHERE email = %s", (email,))
+                user = cursor.fetchone()
+
+                if user:
+                    import secrets
+
+                    # Generate reset token
+                    token = secrets.token_urlsafe(32)
+                    expires_at = datetime.utcnow() + timedelta(hours=1)
+
+                    # Store token in database
+                    cursor.execute("""
+                        INSERT INTO password_reset_tokens (user_id, token, expires_at)
+                        VALUES (%s, %s, %s)
+                    """, (user['id'], token, expires_at))
+                    conn.commit()
+
+                    # Send password reset email
+                    from email_service import send_password_reset_email
+                    user_name = f"{user['first_name']} {user['last_name']}"
+                    send_password_reset_email(user['email'], token, user_name, app=app)
+
+                    # Log activity
+                    log_user_activity(user['id'], 'request_password_reset')
+
+                cursor.close()
+                conn.close()
+
+                # Always show success message (security best practice)
+                flash('If an account with that email exists, a password reset link has been sent.', 'success')
+                return redirect(url_for('login'))
+
+        except Exception as e:
+            logger.error(f"Password reset request error: {e}")
+            flash('An error occurred. Please try again.', 'danger')
+
+    return render_template('forgot_password.html')
+
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    """Reset password with token"""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            flash('Database connection error', 'danger')
+            return redirect(url_for('login'))
+
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Verify token
+        cursor.execute("""
+            SELECT prt.*, u.id as user_id, u.username, u.email
+            FROM password_reset_tokens prt
+            JOIN users u ON prt.user_id = u.id
+            WHERE prt.token = %s AND prt.used = FALSE AND prt.expires_at > %s
+        """, (token, datetime.utcnow()))
+
+        token_data = cursor.fetchone()
+
+        if not token_data:
+            cursor.close()
+            conn.close()
+            flash('Invalid or expired password reset link.', 'danger')
+            return redirect(url_for('login'))
+
+        if request.method == 'POST':
+            new_password = request.form.get('password')
+            confirm_password = request.form.get('confirm_password')
+
+            if not new_password or not confirm_password:
+                flash('Please fill in all fields.', 'danger')
+                return render_template('reset_password.html', token=token)
+
+            if new_password != confirm_password:
+                flash('Passwords do not match.', 'danger')
+                return render_template('reset_password.html', token=token)
+
+            if len(new_password) < 6:
+                flash('Password must be at least 6 characters long.', 'danger')
+                return render_template('reset_password.html', token=token)
+
+            # Update password
+            password_hash = generate_password_hash(new_password)
+            cursor.execute("UPDATE users SET password_hash = %s WHERE id = %s",
+                          (password_hash, token_data['user_id']))
+
+            # Mark token as used
+            cursor.execute("UPDATE password_reset_tokens SET used = TRUE WHERE token = %s", (token,))
+            conn.commit()
+
+            # Log activity
+            log_user_activity(token_data['user_id'], 'reset_password')
+
+            cursor.close()
+            conn.close()
+
+            flash('Your password has been reset successfully. Please log in.', 'success')
+            return redirect(url_for('login'))
+
+        cursor.close()
+        conn.close()
+        return render_template('reset_password.html', token=token)
+
+    except Exception as e:
+        logger.error(f"Password reset error: {e}")
+        flash('An error occurred. Please try again.', 'danger')
+        return redirect(url_for('login'))
+
 
 @app.route('/dashboard')
 @login_required
@@ -397,7 +540,7 @@ def make_breadcrumbs(*crumbs):
 app.jinja_env.globals['make_breadcrumbs'] = make_breadcrumbs
 
 # Import additional route modules
-from routes import blog, pages, admin, themes, api, media
+from routes import blog, pages, admin, themes, api, media, search
 
 # Register blueprints
 app.register_blueprint(blog.bp)
@@ -406,6 +549,11 @@ app.register_blueprint(admin.bp)
 app.register_blueprint(themes.bp)
 app.register_blueprint(api.bp)
 app.register_blueprint(media.bp)
+app.register_blueprint(search.bp)
+
+# Initialize email service
+from email_service import init_mail
+init_mail(app)
 
 # Error handlers
 @app.errorhandler(404)

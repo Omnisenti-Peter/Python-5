@@ -72,6 +72,9 @@
                         <button id="generate-titles" class="w-full border-2 border-yellow-400 text-yellow-600 hover:bg-yellow-400 hover:text-black px-6 py-3 rounded-lg font-semibold transition-all duration-300">
                             <i class="fas fa-lightbulb mr-2"></i>Generate Title Ideas
                         </button>
+                        <button id="export-word" class="w-full border-2 border-green-400 text-green-600 hover:bg-green-400 hover:text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300" disabled>
+                            <i class="fas fa-file-word mr-2"></i>Export to Word
+                        </button>
                     </div>
                 </div>
 
@@ -273,9 +276,76 @@
         });
     });
 
-    // Export to Word (placeholder - actual implementation would require server-side processing)
-    exportBtn.addEventListener('click', function() {
-        alert('Export to Word feature coming soon! For now, you can copy the content and paste it into Word.');
+    // Export to Word
+    const exportWordBtn = document.getElementById('export-word');
+    exportWordBtn.addEventListener('click', async function() {
+        const content = generatedContent.innerHTML;
+        const title = promptInput.value || 'AI Generated Content';
+
+        if (!content || content === 'Your generated content will appear here...') {
+            alert('Please generate content first before exporting.');
+            return;
+        }
+
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Exporting...';
+
+        try {
+            const response = await fetch('/blog/export-content', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: title,
+                    content: content
+                })
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.docx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                this.innerHTML = '<i class="fas fa-check mr-2"></i>Exported!';
+                setTimeout(() => {
+                    this.innerHTML = '<i class="fas fa-file-word mr-2"></i>Export to Word';
+                }, 2000);
+            } else {
+                alert('Failed to export to Word. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to export to Word. Please try again.');
+        } finally {
+            this.disabled = false;
+            if (this.innerHTML.includes('Exporting')) {
+                this.innerHTML = '<i class="fas fa-file-word mr-2"></i>Export to Word';
+            }
+        }
+    });
+
+    // Enable/disable export button based on content
+    function updateExportButton() {
+        const content = generatedContent.innerHTML;
+        if (content && content !== 'Your generated content will appear here...') {
+            exportWordBtn.disabled = false;
+        } else {
+            exportWordBtn.disabled = true;
+        }
+    }
+
+    // Call updateExportButton whenever content changes
+    const originalGenerateClick = generateBtn.onclick;
+    generateBtn.addEventListener('click', async function() {
+        // Wait for content generation
+        setTimeout(updateExportButton, 1000);
     });
 </script>
 {% endblock %}

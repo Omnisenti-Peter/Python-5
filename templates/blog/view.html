@@ -99,7 +99,7 @@
                         <h3 class="text-xl font-bold mb-6 flapper-accent">
                             <i class="fas fa-book-open mr-2"></i>Related Posts
                         </h3>
-                        
+
                         <div class="space-y-4">
                             {% for related_post in related_posts %}
                                 <div class="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
@@ -111,7 +111,7 @@
                                             <i class="fas fa-blog text-black text-xl"></i>
                                         </div>
                                     {% endif %}
-                                    
+
                                     <div class="flex-1">
                                         <h4 class="font-semibold mb-1 hover:text-yellow-600 transition-colors">
                                             <a href="{{ url_for('blog.view_post', slug=related_post.slug) }}">
@@ -130,6 +130,51 @@
                         </div>
                     </div>
                 {% endif %}
+
+                <!-- Comments Section -->
+                <div class="vintage-card p-6 mt-8" id="comments">
+                    <h3 class="text-xl font-bold mb-6 flapper-accent">
+                        <i class="fas fa-comments mr-2"></i>Comments ({{ comment_count or 0 }})
+                    </h3>
+
+                    <!-- Add Comment Form -->
+                    {% if session.get('user_id') %}
+                        <form action="{{ url_for('blog.add_comment', post_id=post.id) }}" method="POST" class="mb-8">
+                            <div class="mb-4">
+                                <textarea name="content" rows="4"
+                                          class="vintage-input w-full"
+                                          placeholder="Write your comment..."
+                                          required maxlength="5000"></textarea>
+                            </div>
+                            <div class="flex justify-end">
+                                <button type="submit" class="vintage-button">
+                                    <i class="fas fa-paper-plane mr-2"></i>Post Comment
+                                </button>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="bg-gray-100 rounded-lg p-4 mb-8 text-center">
+                            <p class="text-gray-600 mb-2">Please log in to leave a comment</p>
+                            <a href="{{ url_for('login') }}" class="vintage-button inline-block">
+                                <i class="fas fa-sign-in-alt mr-2"></i>Log In
+                            </a>
+                        </div>
+                    {% endif %}
+
+                    <!-- Comments List -->
+                    <div class="space-y-6" id="comments-list">
+                        {% if comments %}
+                            {% for comment in comments %}
+                                {% include 'blog/_comment.html' %}
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-8 text-gray-500">
+                                <i class="fas fa-comment-slash text-4xl mb-4"></i>
+                                <p>No comments yet. Be the first to comment!</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
             
             <!-- Sidebar -->
@@ -178,6 +223,10 @@
                         <div class="flex justify-between items-center">
                             <span class="text-gray-600">Published:</span>
                             <span class="font-bold text-yellow-600">{{ post.published_at.strftime('%b %d') }}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Comments:</span>
+                            <span class="font-bold text-yellow-600">{{ comment_count or 0 }}</span>
                         </div>
                     </div>
                 </div>
@@ -234,31 +283,34 @@
             const originalText = button.innerHTML;
             button.innerHTML = '<i class="fas fa-check mr-2"></i>Copied!';
             button.classList.add('bg-green-500');
-            
+
             setTimeout(() => {
                 button.innerHTML = originalText;
                 button.classList.remove('bg-green-500');
             }, 2000);
         });
     });
-    
+
     // Social sharing (placeholder)
     document.querySelectorAll('.fa-twitter, .fa-facebook, .fa-linkedin').forEach(icon => {
         icon.parentElement.addEventListener('click', function() {
             alert('Social sharing feature coming soon!');
         });
     });
-    
+
     // Newsletter subscription
-    document.querySelector('form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const email = this.querySelector('input[type="email"]').value;
-        if (email) {
-            alert('Thank you for subscribing! You will receive notifications about new posts.');
-            this.reset();
-        }
-    });
-    
+    const newsletterForm = document.querySelector('.vintage-card form[class="space-y-3"]');
+    if (newsletterForm) {
+        newsletterForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = this.querySelector('input[type="email"]').value;
+            if (email) {
+                alert('Thank you for subscribing! You will receive notifications about new posts.');
+                this.reset();
+            }
+        });
+    }
+
     // Add line clamp utility
     document.querySelectorAll('.line-clamp-2').forEach(el => {
         el.style.display = '-webkit-box';
@@ -266,20 +318,94 @@
         el.style.webkitBoxOrient = 'vertical';
         el.style.overflow = 'hidden';
     });
-    
+
     // Animate article on load
     document.addEventListener('DOMContentLoaded', function() {
         const article = document.querySelector('article');
         if (article) {
             article.style.opacity = '0';
             article.style.transform = 'translateY(20px)';
-            
+
             setTimeout(() => {
                 article.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
                 article.style.opacity = '1';
                 article.style.transform = 'translateY(0)';
             }, 200);
         }
+
+        // Scroll to comment if hash present
+        if (window.location.hash && window.location.hash.startsWith('#comment-')) {
+            const commentEl = document.querySelector(window.location.hash);
+            if (commentEl) {
+                setTimeout(() => {
+                    commentEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    commentEl.classList.add('ring-2', 'ring-yellow-400');
+                    setTimeout(() => commentEl.classList.remove('ring-2', 'ring-yellow-400'), 3000);
+                }, 500);
+            }
+        }
     });
+
+    // ============== Comment Functions ==============
+
+    // Toggle comment action menu
+    function toggleCommentMenu(commentId) {
+        const menu = document.getElementById('comment-menu-' + commentId);
+        // Close all other menus
+        document.querySelectorAll('[id^="comment-menu-"]').forEach(m => {
+            if (m.id !== 'comment-menu-' + commentId) {
+                m.classList.add('hidden');
+            }
+        });
+        menu.classList.toggle('hidden');
+    }
+
+    // Close menus when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.comment-actions')) {
+            document.querySelectorAll('[id^="comment-menu-"]').forEach(m => {
+                m.classList.add('hidden');
+            });
+        }
+    });
+
+    // Show reply form
+    function showReplyForm(commentId) {
+        // Hide all other reply forms
+        document.querySelectorAll('[id^="reply-form-"]').forEach(form => {
+            form.classList.add('hidden');
+        });
+        const form = document.getElementById('reply-form-' + commentId);
+        form.classList.remove('hidden');
+        form.querySelector('textarea').focus();
+    }
+
+    // Hide reply form
+    function hideReplyForm(commentId) {
+        const form = document.getElementById('reply-form-' + commentId);
+        form.classList.add('hidden');
+        form.querySelector('textarea').value = '';
+    }
+
+    // Show edit form
+    function showEditForm(commentId) {
+        const content = document.getElementById('comment-content-' + commentId);
+        const form = document.getElementById('edit-form-' + commentId);
+        const menu = document.getElementById('comment-menu-' + commentId);
+
+        content.classList.add('hidden');
+        form.classList.remove('hidden');
+        menu.classList.add('hidden');
+        form.querySelector('textarea').focus();
+    }
+
+    // Hide edit form
+    function hideEditForm(commentId) {
+        const content = document.getElementById('comment-content-' + commentId);
+        const form = document.getElementById('edit-form-' + commentId);
+
+        content.classList.remove('hidden');
+        form.classList.add('hidden');
+    }
 </script>
 {% endblock %}

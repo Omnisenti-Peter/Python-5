@@ -916,32 +916,345 @@ def activity_logs():
 @login_required
 @role_required(['SuperAdmin', 'Admin'])
 def moderation_queue():
-    """Content moderation queue"""
+    """Content moderation queue with detailed content information"""
     try:
         conn = get_db_connection()
         if conn:
             cursor = conn.cursor(cursor_factory=RealDictCursor)
-            
-            cursor.execute("""
-                SELECT mq.*, u.username
-                FROM moderation_queue mq
-                JOIN users u ON mq.content_id = u.id
-                WHERE mq.status = 'pending'
-                ORDER BY mq.created_at DESC
-            """)
-            queue_items = cursor.fetchall()
-            
+
+            user_role = session['user_role']
+            group_id = session.get('group_id')
+
+            # Fetch pending items with content details
+            queue_items = []
+
+            # Get blog posts pending moderation
+            if user_role == 'SuperAdmin':
+                cursor.execute("""
+                    SELECT mq.id as queue_id, mq.content_type, mq.content_id, mq.status,
+                           mq.created_at, mq.review_notes,
+                           bp.title, bp.excerpt, bp.slug, bp.is_published,
+                           u.id as author_id, u.username, u.first_name, u.last_name, u.email,
+                           g.name as group_name
+                    FROM moderation_queue mq
+                    JOIN blog_posts bp ON mq.content_id = bp.id
+                    JOIN users u ON bp.author_id = u.id
+                    LEFT JOIN groups g ON bp.group_id = g.id
+                    WHERE mq.content_type = 'blog_post' AND mq.status = 'pending'
+                    ORDER BY mq.created_at DESC
+                """)
+            else:
+                cursor.execute("""
+                    SELECT mq.id as queue_id, mq.content_type, mq.content_id, mq.status,
+                           mq.created_at, mq.review_notes,
+                           bp.title, bp.excerpt, bp.slug, bp.is_published,
+                           u.id as author_id, u.username, u.first_name, u.last_name, u.email
+                    FROM moderation_queue mq
+                    JOIN blog_posts bp ON mq.content_id = bp.id
+                    JOIN users u ON bp.author_id = u.id
+                    WHERE mq.content_type = 'blog_post' AND mq.status = 'pending'
+                          AND bp.group_id = %s
+                    ORDER BY mq.created_at DESC
+                """, (group_id,))
+
+            blog_posts = cursor.fetchall()
+            queue_items.extend(blog_posts)
+
+            # Get pages pending moderation
+            if user_role == 'SuperAdmin':
+                cursor.execute("""
+                    SELECT mq.id as queue_id, mq.content_type, mq.content_id, mq.status,
+                           mq.created_at, mq.review_notes,
+                           p.title, p.slug, p.is_published,
+                           u.id as author_id, u.username, u.first_name, u.last_name, u.email,
+                           g.name as group_name
+                    FROM moderation_queue mq
+                    JOIN pages p ON mq.content_id = p.id
+                    JOIN users u ON p.author_id = u.id
+                    LEFT JOIN groups g ON p.group_id = g.id
+                    WHERE mq.content_type = 'page' AND mq.status = 'pending'
+                    ORDER BY mq.created_at DESC
+                """)
+            else:
+                cursor.execute("""
+                    SELECT mq.id as queue_id, mq.content_type, mq.content_id, mq.status,
+                           mq.created_at, mq.review_notes,
+                           p.title, p.slug, p.is_published,
+                           u.id as author_id, u.username, u.first_name, u.last_name, u.email
+                    FROM moderation_queue mq
+                    JOIN pages p ON mq.content_id = p.id
+                    JOIN users u ON p.author_id = u.id
+                    WHERE mq.content_type = 'page' AND mq.status = 'pending'
+                          AND p.group_id = %s
+                    ORDER BY mq.created_at DESC
+                """, (group_id,))
+
+            pages = cursor.fetchall()
+            queue_items.extend(pages)
+
+            # Get moderation stats
+            if user_role == 'SuperAdmin':
+                cursor.execute("""
+                    SELECT
+                        COUNT(*) FILTER (WHERE status = 'pending') as pending_count,
+                        COUNT(*) FILTER (WHERE status = 'approved') as approved_count,
+                        COUNT(*) FILTER (WHERE status = 'rejected') as rejected_count,
+                        COUNT(*) as total_count
+                    FROM moderation_queue
+                """)
+            else:
+                cursor.execute("""
+                    SELECT
+                        COUNT(*) FILTER (WHERE mq.status = 'pending') as pending_count,
+                        COUNT(*) FILTER (WHERE mq.status = 'approved') as approved_count,
+                        COUNT(*) FILTER (WHERE mq.status = 'rejected') as rejected_count,
+                        COUNT(*) as total_count
+                    FROM moderation_queue mq
+                    LEFT JOIN blog_posts bp ON mq.content_type = 'blog_post' AND mq.content_id = bp.id
+                    LEFT JOIN pages p ON mq.content_type = 'page' AND mq.content_id = p.id
+                    WHERE (bp.group_id = %s OR p.group_id = %s)
+                """, (group_id, group_id))
+
+            stats = cursor.fetchone()
+
             cursor.close()
             conn.close()
-            
-            return render_template('admin/moderation.html', queue_items=queue_items)
+
+            return render_template('admin/moderation.html', queue_items=queue_items, stats=stats)
         else:
             flash('Database connection error', 'danger')
-            return render_template('admin/moderation.html', queue_items=[])
-            
+            return render_template('admin/moderation.html', queue_items=[], stats={})
+
     except Exception as e:
         flash('Error loading moderation queue', 'danger')
-        return render_template('admin/moderation.html', queue_items=[])
+        logger.error(f"Error loading moderation queue: {e}")
+        return render_template('admin/moderation.html', queue_items=[], stats={})
+
+
+@bp.route('/moderation/<int:queue_id>/approve', methods=['POST'])
+@login_required
+@role_required(['SuperAdmin', 'Admin'])
+def approve_moderation(queue_id):
+    """Approve content in moderation queue"""
+    try:
+        review_notes = request.form.get('review_notes', '')
+
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # Get queue item
+            cursor.execute("""
+                SELECT mq.*, u.email, u.first_name, u.last_name
+                FROM moderation_queue mq
+                LEFT JOIN blog_posts bp ON mq.content_type = 'blog_post' AND mq.content_id = bp.id
+                LEFT JOIN pages p ON mq.content_type = 'page' AND mq.content_id = p.id
+                LEFT JOIN users u ON (bp.author_id = u.id OR p.author_id = u.id)
+                WHERE mq.id = %s
+            """, (queue_id,))
+            item = cursor.fetchone()
+
+            if not item:
+                flash('Moderation item not found', 'danger')
+                return redirect(url_for('admin.moderation_queue'))
+
+            # Update moderation queue
+            cursor.execute("""
+                UPDATE moderation_queue
+                SET status = 'approved', reviewed_by = %s, reviewed_at = %s, review_notes = %s
+                WHERE id = %s
+            """, (session['user_id'], datetime.utcnow(), review_notes, queue_id))
+
+            # Publish the content
+            if item['content_type'] == 'blog_post':
+                cursor.execute("""
+                    UPDATE blog_posts SET is_published = TRUE, published_at = %s
+                    WHERE id = %s
+                """, (datetime.utcnow(), item['content_id']))
+            elif item['content_type'] == 'page':
+                cursor.execute("""
+                    UPDATE pages SET is_published = TRUE, published_at = %s
+                    WHERE id = %s
+                """, (datetime.utcnow(), item['content_id']))
+
+            conn.commit()
+
+            # Log activity
+            log_user_activity(session['user_id'], 'approve_content', item['content_type'], item['content_id'])
+
+            # Send notification email to author
+            if item.get('email'):
+                from email_service import send_moderation_decision_email
+                from flask import current_app
+                send_moderation_decision_email(
+                    item['email'],
+                    f"{item['first_name']} {item['last_name']}",
+                    item['content_type'],
+                    'approved',
+                    review_notes,
+                    app=current_app._get_current_object()
+                )
+
+            cursor.close()
+            conn.close()
+
+            flash('Content approved and published successfully', 'success')
+            return redirect(url_for('admin.moderation_queue'))
+
+    except Exception as e:
+        flash('Error approving content', 'danger')
+        logger.error(f"Error approving content: {e}")
+        return redirect(url_for('admin.moderation_queue'))
+
+
+@bp.route('/moderation/<int:queue_id>/reject', methods=['POST'])
+@login_required
+@role_required(['SuperAdmin', 'Admin'])
+def reject_moderation(queue_id):
+    """Reject content in moderation queue"""
+    try:
+        review_notes = request.form.get('review_notes', '')
+
+        if not review_notes:
+            flash('Please provide a reason for rejection', 'warning')
+            return redirect(url_for('admin.moderation_queue'))
+
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # Get queue item
+            cursor.execute("""
+                SELECT mq.*, u.email, u.first_name, u.last_name
+                FROM moderation_queue mq
+                LEFT JOIN blog_posts bp ON mq.content_type = 'blog_post' AND mq.content_id = bp.id
+                LEFT JOIN pages p ON mq.content_type = 'page' AND mq.content_id = p.id
+                LEFT JOIN users u ON (bp.author_id = u.id OR p.author_id = u.id)
+                WHERE mq.id = %s
+            """, (queue_id,))
+            item = cursor.fetchone()
+
+            if not item:
+                flash('Moderation item not found', 'danger')
+                return redirect(url_for('admin.moderation_queue'))
+
+            # Update moderation queue
+            cursor.execute("""
+                UPDATE moderation_queue
+                SET status = 'rejected', reviewed_by = %s, reviewed_at = %s, review_notes = %s
+                WHERE id = %s
+            """, (session['user_id'], datetime.utcnow(), review_notes, queue_id))
+
+            conn.commit()
+
+            # Log activity
+            log_user_activity(session['user_id'], 'reject_content', item['content_type'], item['content_id'])
+
+            # Send notification email to author
+            if item.get('email'):
+                from email_service import send_moderation_decision_email
+                from flask import current_app
+                send_moderation_decision_email(
+                    item['email'],
+                    f"{item['first_name']} {item['last_name']}",
+                    item['content_type'],
+                    'rejected',
+                    review_notes,
+                    app=current_app._get_current_object()
+                )
+
+            cursor.close()
+            conn.close()
+
+            flash('Content rejected', 'success')
+            return redirect(url_for('admin.moderation_queue'))
+
+    except Exception as e:
+        flash('Error rejecting content', 'danger')
+        logger.error(f"Error rejecting content: {e}")
+        return redirect(url_for('admin.moderation_queue'))
+
+
+@bp.route('/moderation/bulk-action', methods=['POST'])
+@login_required
+@role_required(['SuperAdmin', 'Admin'])
+def bulk_moderation_action():
+    """Perform bulk moderation actions"""
+    try:
+        action = request.form.get('action')
+        queue_ids = request.form.getlist('queue_ids[]')
+        review_notes = request.form.get('bulk_review_notes', '')
+
+        if not queue_ids:
+            flash('No items selected', 'warning')
+            return redirect(url_for('admin.moderation_queue'))
+
+        if action not in ['approve', 'reject']:
+            flash('Invalid action', 'danger')
+            return redirect(url_for('admin.moderation_queue'))
+
+        if action == 'reject' and not review_notes:
+            flash('Please provide a reason for bulk rejection', 'warning')
+            return redirect(url_for('admin.moderation_queue'))
+
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            success_count = 0
+            for queue_id in queue_ids:
+                try:
+                    # Get queue item
+                    cursor.execute("""
+                        SELECT * FROM moderation_queue WHERE id = %s
+                    """, (queue_id,))
+                    item = cursor.fetchone()
+
+                    if not item:
+                        continue
+
+                    # Update moderation queue
+                    status = 'approved' if action == 'approve' else 'rejected'
+                    cursor.execute("""
+                        UPDATE moderation_queue
+                        SET status = %s, reviewed_by = %s, reviewed_at = %s, review_notes = %s
+                        WHERE id = %s
+                    """, (status, session['user_id'], datetime.utcnow(), review_notes, queue_id))
+
+                    # Publish content if approved
+                    if action == 'approve':
+                        if item['content_type'] == 'blog_post':
+                            cursor.execute("""
+                                UPDATE blog_posts SET is_published = TRUE, published_at = %s
+                                WHERE id = %s
+                            """, (datetime.utcnow(), item['content_id']))
+                        elif item['content_type'] == 'page':
+                            cursor.execute("""
+                                UPDATE pages SET is_published = TRUE, published_at = %s
+                                WHERE id = %s
+                            """, (datetime.utcnow(), item['content_id']))
+
+                    success_count += 1
+
+                except Exception as e:
+                    logger.error(f"Error processing queue item {queue_id}: {e}")
+                    continue
+
+            conn.commit()
+            cursor.close()
+            conn.close()
+
+            # Log activity
+            log_user_activity(session['user_id'], f'bulk_{action}_content', 'moderation', None,
+                            {'count': success_count})
+
+            flash(f'Bulk action completed: {success_count} items {action}ed', 'success')
+            return redirect(url_for('admin.moderation_queue'))
+
+    except Exception as e:
+        flash('Error performing bulk action', 'danger')
+        logger.error(f"Error in bulk moderation: {e}")
+        return redirect(url_for('admin.moderation_queue'))
 
 @bp.route('/api-settings')
 @login_required
@@ -1121,3 +1434,481 @@ def organization_settings():
         flash('Error loading settings', 'danger')
         logger.error(f"Error loading organization settings: {e}")
         return redirect(url_for('admin.dashboard'))
+
+
+# ============== ANALYTICS ROUTES ==============
+
+@bp.route('/analytics')
+@login_required
+@role_required(['SuperAdmin', 'Admin'])
+def analytics():
+    """Analytics dashboard with detailed metrics"""
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            user_role = session['user_role']
+            group_id = session.get('group_id')
+
+            # ===== OVERVIEW STATS =====
+            if user_role == 'SuperAdmin':
+                cursor.execute("""
+                    SELECT
+                        (SELECT COUNT(*) FROM users WHERE is_active = TRUE) as total_users,
+                        (SELECT COUNT(*) FROM groups WHERE is_active = TRUE) as total_groups,
+                        (SELECT COUNT(*) FROM blog_posts WHERE is_published = TRUE) as total_blog_posts,
+                        (SELECT COUNT(*) FROM pages WHERE is_published = TRUE) as total_pages,
+                        (SELECT COUNT(*) FROM comments WHERE is_deleted = FALSE) as total_comments,
+                        (SELECT COALESCE(SUM(view_count), 0) FROM blog_posts) as total_blog_views,
+                        (SELECT COALESCE(SUM(view_count), 0) FROM pages) as total_page_views
+                """)
+            else:
+                cursor.execute("""
+                    SELECT
+                        (SELECT COUNT(*) FROM users WHERE group_id = %s AND is_active = TRUE) as total_users,
+                        (SELECT COUNT(*) FROM blog_posts WHERE group_id = %s AND is_published = TRUE) as total_blog_posts,
+                        (SELECT COUNT(*) FROM pages WHERE group_id = %s AND is_published = TRUE) as total_pages,
+                        (SELECT COUNT(*) FROM comments c
+                         JOIN blog_posts bp ON c.blog_post_id = bp.id
+                         WHERE bp.group_id = %s AND c.is_deleted = FALSE) as total_comments,
+                        (SELECT COALESCE(SUM(view_count), 0) FROM blog_posts WHERE group_id = %s) as total_blog_views,
+                        (SELECT COALESCE(SUM(view_count), 0) FROM pages WHERE group_id = %s) as total_page_views
+                """, (group_id, group_id, group_id, group_id, group_id, group_id))
+
+            overview_stats = cursor.fetchone()
+
+            # ===== POPULAR BLOG POSTS (Top 10) =====
+            if user_role == 'SuperAdmin':
+                cursor.execute("""
+                    SELECT bp.id, bp.title, bp.slug, bp.view_count, bp.created_at,
+                           u.username as author_username, u.first_name, u.last_name,
+                           g.name as group_name,
+                           (SELECT COUNT(*) FROM comments WHERE blog_post_id = bp.id AND is_deleted = FALSE) as comment_count
+                    FROM blog_posts bp
+                    JOIN users u ON bp.author_id = u.id
+                    LEFT JOIN groups g ON bp.group_id = g.id
+                    WHERE bp.is_published = TRUE
+                    ORDER BY bp.view_count DESC
+                    LIMIT 10
+                """)
+            else:
+                cursor.execute("""
+                    SELECT bp.id, bp.title, bp.slug, bp.view_count, bp.created_at,
+                           u.username as author_username, u.first_name, u.last_name,
+                           (SELECT COUNT(*) FROM comments WHERE blog_post_id = bp.id AND is_deleted = FALSE) as comment_count
+                    FROM blog_posts bp
+                    JOIN users u ON bp.author_id = u.id
+                    WHERE bp.group_id = %s AND bp.is_published = TRUE
+                    ORDER BY bp.view_count DESC
+                    LIMIT 10
+                """, (group_id,))
+
+            popular_posts = cursor.fetchall()
+
+            # ===== POPULAR PAGES (Top 10) =====
+            if user_role == 'SuperAdmin':
+                cursor.execute("""
+                    SELECT p.id, p.title, p.slug, p.view_count, p.created_at,
+                           u.username as author_username, u.first_name, u.last_name,
+                           g.name as group_name
+                    FROM pages p
+                    JOIN users u ON p.author_id = u.id
+                    LEFT JOIN groups g ON p.group_id = g.id
+                    WHERE p.is_published = TRUE
+                    ORDER BY p.view_count DESC
+                    LIMIT 10
+                """)
+            else:
+                cursor.execute("""
+                    SELECT p.id, p.title, p.slug, p.view_count, p.created_at,
+                           u.username as author_username, u.first_name, u.last_name
+                    FROM pages p
+                    JOIN users u ON p.author_id = u.id
+                    WHERE p.group_id = %s AND p.is_published = TRUE
+                    ORDER BY p.view_count DESC
+                    LIMIT 10
+                """, (group_id,))
+
+            popular_pages = cursor.fetchall()
+
+            # ===== RECENT ACTIVITY (Last 30 days) =====
+            if user_role == 'SuperAdmin':
+                cursor.execute("""
+                    SELECT
+                        DATE(created_at) as date,
+                        COUNT(*) FILTER (WHERE action = 'create_blog_post') as new_posts,
+                        COUNT(*) FILTER (WHERE action = 'create_page') as new_pages,
+                        COUNT(*) FILTER (WHERE action = 'register') as new_users
+                    FROM user_activity_logs
+                    WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
+                    GROUP BY DATE(created_at)
+                    ORDER BY date DESC
+                    LIMIT 30
+                """)
+            else:
+                cursor.execute("""
+                    SELECT
+                        DATE(ual.created_at) as date,
+                        COUNT(*) FILTER (WHERE ual.action = 'create_blog_post') as new_posts,
+                        COUNT(*) FILTER (WHERE ual.action = 'create_page') as new_pages,
+                        COUNT(*) FILTER (WHERE ual.action = 'register') as new_users
+                    FROM user_activity_logs ual
+                    JOIN users u ON ual.user_id = u.id
+                    WHERE u.group_id = %s AND ual.created_at >= CURRENT_DATE - INTERVAL '30 days'
+                    GROUP BY DATE(ual.created_at)
+                    ORDER BY date DESC
+                    LIMIT 30
+                """, (group_id,))
+
+            activity_timeline = cursor.fetchall()
+
+            # ===== USER ENGAGEMENT =====
+            if user_role == 'SuperAdmin':
+                cursor.execute("""
+                    SELECT u.id, u.username, u.first_name, u.last_name,
+                           (SELECT COUNT(*) FROM blog_posts WHERE author_id = u.id) as post_count,
+                           (SELECT COUNT(*) FROM comments WHERE user_id = u.id AND is_deleted = FALSE) as comment_count,
+                           (SELECT COALESCE(SUM(view_count), 0) FROM blog_posts WHERE author_id = u.id) as total_views
+                    FROM users u
+                    WHERE u.is_active = TRUE
+                    ORDER BY total_views DESC
+                    LIMIT 10
+                """)
+            else:
+                cursor.execute("""
+                    SELECT u.id, u.username, u.first_name, u.last_name,
+                           (SELECT COUNT(*) FROM blog_posts WHERE author_id = u.id) as post_count,
+                           (SELECT COUNT(*) FROM comments WHERE user_id = u.id AND is_deleted = FALSE) as comment_count,
+                           (SELECT COALESCE(SUM(view_count), 0) FROM blog_posts WHERE author_id = u.id) as total_views
+                    FROM users u
+                    WHERE u.group_id = %s AND u.is_active = TRUE
+                    ORDER BY total_views DESC
+                    LIMIT 10
+                """, (group_id,))
+
+            top_contributors = cursor.fetchall()
+
+            # ===== CONTENT PERFORMANCE BY TAG =====
+            if user_role == 'SuperAdmin':
+                cursor.execute("""
+                    SELECT
+                        unnest(tags) as tag,
+                        COUNT(*) as post_count,
+                        AVG(view_count) as avg_views
+                    FROM blog_posts
+                    WHERE is_published = TRUE AND tags IS NOT NULL AND array_length(tags, 1) > 0
+                    GROUP BY tag
+                    ORDER BY post_count DESC
+                    LIMIT 15
+                """)
+            else:
+                cursor.execute("""
+                    SELECT
+                        unnest(tags) as tag,
+                        COUNT(*) as post_count,
+                        AVG(view_count) as avg_views
+                    FROM blog_posts
+                    WHERE group_id = %s AND is_published = TRUE AND tags IS NOT NULL AND array_length(tags, 1) > 0
+                    GROUP BY tag
+                    ORDER BY post_count DESC
+                    LIMIT 15
+                """, (group_id,))
+
+            tag_stats = cursor.fetchall()
+
+            # ===== COMMENT ENGAGEMENT =====
+            if user_role == 'SuperAdmin':
+                cursor.execute("""
+                    SELECT bp.id, bp.title, bp.slug,
+                           COUNT(c.id) as comment_count,
+                           bp.view_count,
+                           u.username as author_username
+                    FROM blog_posts bp
+                    JOIN users u ON bp.author_id = u.id
+                    LEFT JOIN comments c ON bp.id = c.blog_post_id AND c.is_deleted = FALSE
+                    WHERE bp.is_published = TRUE
+                    GROUP BY bp.id, bp.title, bp.slug, bp.view_count, u.username
+                    ORDER BY comment_count DESC
+                    LIMIT 10
+                """)
+            else:
+                cursor.execute("""
+                    SELECT bp.id, bp.title, bp.slug,
+                           COUNT(c.id) as comment_count,
+                           bp.view_count,
+                           u.username as author_username
+                    FROM blog_posts bp
+                    JOIN users u ON bp.author_id = u.id
+                    LEFT JOIN comments c ON bp.id = c.blog_post_id AND c.is_deleted = FALSE
+                    WHERE bp.group_id = %s AND bp.is_published = TRUE
+                    GROUP BY bp.id, bp.title, bp.slug, bp.view_count, u.username
+                    ORDER BY comment_count DESC
+                    LIMIT 10
+                """, (group_id,))
+
+            most_commented = cursor.fetchall()
+
+            cursor.close()
+            conn.close()
+
+            return render_template('admin/analytics.html',
+                                 overview_stats=overview_stats,
+                                 popular_posts=popular_posts,
+                                 popular_pages=popular_pages,
+                                 activity_timeline=activity_timeline,
+                                 top_contributors=top_contributors,
+                                 tag_stats=tag_stats,
+                                 most_commented=most_commented,
+                                 user_role=user_role)
+        else:
+            flash('Database connection error', 'danger')
+            return render_template('admin/analytics.html')
+
+    except Exception as e:
+        flash('Error loading analytics', 'danger')
+        logger.error(f"Error loading analytics: {e}")
+        return render_template('admin/analytics.html')
+
+
+# ============== COMMENT MODERATION ROUTES ==============
+
+@bp.route('/comments')
+@login_required
+@role_required(['SuperAdmin', 'Admin'])
+def manage_comments():
+    """View and manage comments"""
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            user_role = session['user_role']
+            group_id = session.get('group_id')
+
+            # Build query based on role
+            if user_role == 'SuperAdmin':
+                cursor.execute("""
+                    SELECT c.*, u.username, u.first_name, u.last_name,
+                           bp.title as post_title, bp.slug as post_slug,
+                           g.name as group_name
+                    FROM comments c
+                    JOIN users u ON c.user_id = u.id
+                    JOIN blog_posts bp ON c.blog_post_id = bp.id
+                    LEFT JOIN groups g ON bp.group_id = g.id
+                    WHERE c.is_deleted = FALSE
+                    ORDER BY c.created_at DESC
+                    LIMIT 100
+                """)
+            else:
+                cursor.execute("""
+                    SELECT c.*, u.username, u.first_name, u.last_name,
+                           bp.title as post_title, bp.slug as post_slug,
+                           g.name as group_name
+                    FROM comments c
+                    JOIN users u ON c.user_id = u.id
+                    JOIN blog_posts bp ON c.blog_post_id = bp.id
+                    LEFT JOIN groups g ON bp.group_id = g.id
+                    WHERE c.is_deleted = FALSE AND bp.group_id = %s
+                    ORDER BY c.created_at DESC
+                    LIMIT 100
+                """, (group_id,))
+
+            comments = cursor.fetchall()
+
+            # Get stats
+            if user_role == 'SuperAdmin':
+                cursor.execute("""
+                    SELECT
+                        COUNT(*) FILTER (WHERE is_deleted = FALSE) as total_comments,
+                        COUNT(*) FILTER (WHERE is_approved = FALSE AND is_deleted = FALSE) as pending_comments,
+                        COUNT(*) FILTER (WHERE is_deleted = TRUE) as deleted_comments
+                    FROM comments
+                """)
+            else:
+                cursor.execute("""
+                    SELECT
+                        COUNT(*) FILTER (WHERE c.is_deleted = FALSE) as total_comments,
+                        COUNT(*) FILTER (WHERE c.is_approved = FALSE AND c.is_deleted = FALSE) as pending_comments,
+                        COUNT(*) FILTER (WHERE c.is_deleted = TRUE) as deleted_comments
+                    FROM comments c
+                    JOIN blog_posts bp ON c.blog_post_id = bp.id
+                    WHERE bp.group_id = %s
+                """, (group_id,))
+
+            stats = cursor.fetchone()
+
+            cursor.close()
+            conn.close()
+
+            return render_template('admin/comments.html', comments=comments, stats=stats)
+        else:
+            flash('Database connection error', 'danger')
+            return render_template('admin/comments.html', comments=[], stats={})
+
+    except Exception as e:
+        flash('Error loading comments', 'danger')
+        logger.error(f"Error loading comments: {e}")
+        return render_template('admin/comments.html', comments=[], stats={})
+
+
+@bp.route('/comments/<int:comment_id>/approve', methods=['POST'])
+@login_required
+@role_required(['SuperAdmin', 'Admin'])
+def approve_comment(comment_id):
+    """Approve a comment"""
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # Verify permission
+            cursor.execute("""
+                SELECT c.*, bp.group_id FROM comments c
+                JOIN blog_posts bp ON c.blog_post_id = bp.id
+                WHERE c.id = %s
+            """, (comment_id,))
+            comment = cursor.fetchone()
+
+            if not comment:
+                flash('Comment not found', 'danger')
+                cursor.close()
+                conn.close()
+                return redirect(url_for('admin.manage_comments'))
+
+            # Check group permission for Admin
+            if session['user_role'] == 'Admin' and comment['group_id'] != session.get('group_id'):
+                flash('You do not have permission to moderate this comment', 'danger')
+                cursor.close()
+                conn.close()
+                return redirect(url_for('admin.manage_comments'))
+
+            cursor.execute("""
+                UPDATE comments SET is_approved = TRUE, updated_at = %s
+                WHERE id = %s
+            """, (datetime.utcnow(), comment_id))
+            conn.commit()
+
+            log_user_activity(session['user_id'], 'approve_comment', 'comment', comment_id)
+
+            cursor.close()
+            conn.close()
+
+            flash('Comment approved successfully', 'success')
+            return redirect(url_for('admin.manage_comments'))
+        else:
+            flash('Database connection error', 'danger')
+            return redirect(url_for('admin.manage_comments'))
+
+    except Exception as e:
+        flash('Error approving comment', 'danger')
+        logger.error(f"Error approving comment: {e}")
+        return redirect(url_for('admin.manage_comments'))
+
+
+@bp.route('/comments/<int:comment_id>/unapprove', methods=['POST'])
+@login_required
+@role_required(['SuperAdmin', 'Admin'])
+def unapprove_comment(comment_id):
+    """Unapprove/hide a comment"""
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # Verify permission
+            cursor.execute("""
+                SELECT c.*, bp.group_id FROM comments c
+                JOIN blog_posts bp ON c.blog_post_id = bp.id
+                WHERE c.id = %s
+            """, (comment_id,))
+            comment = cursor.fetchone()
+
+            if not comment:
+                flash('Comment not found', 'danger')
+                cursor.close()
+                conn.close()
+                return redirect(url_for('admin.manage_comments'))
+
+            # Check group permission for Admin
+            if session['user_role'] == 'Admin' and comment['group_id'] != session.get('group_id'):
+                flash('You do not have permission to moderate this comment', 'danger')
+                cursor.close()
+                conn.close()
+                return redirect(url_for('admin.manage_comments'))
+
+            cursor.execute("""
+                UPDATE comments SET is_approved = FALSE, updated_at = %s
+                WHERE id = %s
+            """, (datetime.utcnow(), comment_id))
+            conn.commit()
+
+            log_user_activity(session['user_id'], 'unapprove_comment', 'comment', comment_id)
+
+            cursor.close()
+            conn.close()
+
+            flash('Comment hidden successfully', 'success')
+            return redirect(url_for('admin.manage_comments'))
+        else:
+            flash('Database connection error', 'danger')
+            return redirect(url_for('admin.manage_comments'))
+
+    except Exception as e:
+        flash('Error hiding comment', 'danger')
+        logger.error(f"Error hiding comment: {e}")
+        return redirect(url_for('admin.manage_comments'))
+
+
+@bp.route('/comments/<int:comment_id>/delete', methods=['POST'])
+@login_required
+@role_required(['SuperAdmin', 'Admin'])
+def admin_delete_comment(comment_id):
+    """Delete a comment (soft delete)"""
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # Verify permission
+            cursor.execute("""
+                SELECT c.*, bp.group_id FROM comments c
+                JOIN blog_posts bp ON c.blog_post_id = bp.id
+                WHERE c.id = %s
+            """, (comment_id,))
+            comment = cursor.fetchone()
+
+            if not comment:
+                flash('Comment not found', 'danger')
+                cursor.close()
+                conn.close()
+                return redirect(url_for('admin.manage_comments'))
+
+            # Check group permission for Admin
+            if session['user_role'] == 'Admin' and comment['group_id'] != session.get('group_id'):
+                flash('You do not have permission to delete this comment', 'danger')
+                cursor.close()
+                conn.close()
+                return redirect(url_for('admin.manage_comments'))
+
+            cursor.execute("""
+                UPDATE comments SET is_deleted = TRUE, updated_at = %s
+                WHERE id = %s
+            """, (datetime.utcnow(), comment_id))
+            conn.commit()
+
+            log_user_activity(session['user_id'], 'admin_delete_comment', 'comment', comment_id)
+
+            cursor.close()
+            conn.close()
+
+            flash('Comment deleted successfully', 'success')
+            return redirect(url_for('admin.manage_comments'))
+        else:
+            flash('Database connection error', 'danger')
+            return redirect(url_for('admin.manage_comments'))
+
+    except Exception as e:
+        flash('Error deleting comment', 'danger')
+        logger.error(f"Error deleting comment: {e}")
+        return redirect(url_for('admin.manage_comments'))

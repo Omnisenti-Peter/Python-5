@@ -1,51 +1,346 @@
 {% extends "base.html" %}
 
-{% block title %}Moderation Queue - Admin{% endblock %}
+{% block title %}Moderation Queue - Opinian{% endblock %}
+
+{% block extra_css %}
+<style>
+    .moderation-item {
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s;
+    }
+    .moderation-item:hover {
+        border-color: var(--accent-color);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .moderation-item.selected {
+        background-color: #fef3c7;
+        border-color: #fbbf24;
+    }
+    .content-preview {
+        background: #f9fafb;
+        padding: 1rem;
+        border-radius: 4px;
+        margin-top: 0.5rem;
+        max-height: 100px;
+        overflow: hidden;
+        position: relative;
+    }
+    .content-preview::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 30px;
+        background: linear-gradient(transparent, #f9fafb);
+    }
+    .notes-textarea {
+        min-height: 80px;
+        display: none;
+    }
+    .notes-textarea.active {
+        display: block;
+    }
+    .stat-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
-    <div class="mb-8">
-        <h1 class="text-4xl font-bold mb-2">
-            <i class="fas fa-flag mr-3 text-orange-600"></i>Moderation Queue
-        </h1>
-        <p class="text-gray-600">Review content pending moderation</p>
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-4xl font-bold flapper-accent mb-2" style="font-family: var(--heading-font);">
+                <i class="fas fa-flag mr-3"></i>Moderation Queue
+            </h1>
+            <p class="text-gray-600">Review and moderate pending content</p>
+        </div>
+        <a href="{{ url_for('admin.dashboard') }}" class="vintage-button">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+        </a>
     </div>
 
+    <!-- Statistics -->
+    {% if stats %}
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="vintage-card p-4">
+            <div class="stat-badge bg-orange-100 text-orange-800">
+                <i class="fas fa-clock mr-2"></i>Pending: {{ stats.pending_count or 0 }}
+            </div>
+        </div>
+        <div class="vintage-card p-4">
+            <div class="stat-badge bg-green-100 text-green-800">
+                <i class="fas fa-check mr-2"></i>Approved: {{ stats.approved_count or 0 }}
+            </div>
+        </div>
+        <div class="vintage-card p-4">
+            <div class="stat-badge bg-red-100 text-red-800">
+                <i class="fas fa-times mr-2"></i>Rejected: {{ stats.rejected_count or 0 }}
+            </div>
+        </div>
+        <div class="vintage-card p-4">
+            <div class="stat-badge bg-blue-100 text-blue-800">
+                <i class="fas fa-list mr-2"></i>Total: {{ stats.total_count or 0 }}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Bulk Actions Bar -->
+    {% if queue_items %}
+    <div class="vintage-card p-4 mb-6" id="bulkActionsBar" style="display: none;">
+        <form action="{{ url_for('admin.bulk_moderation_action') }}" method="POST" id="bulkActionForm">
+            <div class="flex items-center gap-4">
+                <span class="font-semibold">
+                    <span id="selectedCount">0</span> items selected
+                </span>
+                <select name="action" class="vintage-input" required>
+                    <option value="">Select Action</option>
+                    <option value="approve">Approve Selected</option>
+                    <option value="reject">Reject Selected</option>
+                </select>
+                <input type="text" name="bulk_review_notes" placeholder="Review notes (required for rejection)"
+                       class="vintage-input flex-1">
+                <button type="submit" class="vintage-button">
+                    <i class="fas fa-check mr-2"></i>Apply
+                </button>
+                <button type="button" onclick="clearSelection()" class="px-4 py-2 bg-gray-500 text-white rounded">
+                    <i class="fas fa-times mr-2"></i>Clear
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Moderation Items -->
     <div class="vintage-card p-6">
         {% if queue_items %}
         <div class="space-y-4">
             {% for item in queue_items %}
-            <div class="border-2 border-gray-200 rounded-lg p-4 hover:border-yellow-600 transition-colors">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <span class="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-semibold">
-                            {{ item.content_type }}
-                        </span>
-                        <p class="mt-2 text-sm text-gray-600">
-                            Submitted by: <strong>{{ item.username }}</strong>
-                        </p>
-                        <p class="text-xs text-gray-500">
-                            {{ item.created_at.strftime('%Y-%m-%d %H:%M') if item.created_at else 'N/A' }}
-                        </p>
+            <div class="moderation-item" data-queue-id="{{ item.queue_id }}">
+                <div class="flex items-start gap-4">
+                    <!-- Selection Checkbox -->
+                    <div class="pt-1">
+                        <input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer"
+                               value="{{ item.queue_id }}"
+                               onchange="updateBulkActions()">
                     </div>
-                    <div class="flex space-x-2">
-                        <button class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
-                            <i class="fas fa-check mr-1"></i>Approve
+
+                    <!-- Content Info -->
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-semibold">
+                                {{ item.content_type.replace('_', ' ').title() }}
+                            </span>
+                            {% if user_role == 'SuperAdmin' and item.group_name %}
+                            <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                                <i class="fas fa-building mr-1"></i>{{ item.group_name }}
+                            </span>
+                            {% endif %}
+                            <span class="text-sm text-gray-500">
+                                <i class="fas fa-clock mr-1"></i>
+                                {{ item.created_at.strftime('%Y-%m-%d %H:%M') if item.created_at else 'N/A' }}
+                            </span>
+                        </div>
+
+                        <h3 class="text-xl font-bold mb-2">{{ item.title }}</h3>
+
+                        <div class="text-sm text-gray-600 mb-2">
+                            <i class="fas fa-user mr-2"></i>
+                            <strong>{{ item.first_name }} {{ item.last_name }}</strong>
+                            <span class="text-gray-500">(@{{ item.username }})</span>
+                        </div>
+
+                        {% if item.excerpt %}
+                        <div class="content-preview text-sm text-gray-700">
+                            {{ item.excerpt }}
+                        </div>
+                        {% endif %}
+
+                        {% if item.slug %}
+                        <div class="mt-2">
+                            {% if item.content_type == 'blog_post' %}
+                            <a href="{{ url_for('blog.view_post', slug=item.slug) }}"
+                               class="text-blue-600 hover:underline text-sm"
+                               target="_blank">
+                                <i class="fas fa-external-link-alt mr-1"></i>View Content
+                            </a>
+                            {% elif item.content_type == 'page' %}
+                            <a href="{{ url_for('pages.view_page', slug=item.slug) }}"
+                               class="text-blue-600 hover:underline text-sm"
+                               target="_blank">
+                                <i class="fas fa-external-link-alt mr-1"></i>View Content
+                            </a>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex flex-col gap-2" style="min-width: 200px;">
+                        <!-- Approve Button -->
+                        <button type="button"
+                                class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition"
+                                onclick="showApproveForm({{ item.queue_id }})">
+                            <i class="fas fa-check mr-2"></i>Approve
                         </button>
-                        <button class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
-                            <i class="fas fa-times mr-1"></i>Reject
+
+                        <!-- Reject Button -->
+                        <button type="button"
+                                class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
+                                onclick="showRejectForm({{ item.queue_id }})">
+                            <i class="fas fa-times mr-2"></i>Reject
                         </button>
                     </div>
+                </div>
+
+                <!-- Approve Form (Hidden) -->
+                <div id="approveForm{{ item.queue_id }}" class="mt-4 p-4 bg-green-50 border-2 border-green-200 rounded" style="display: none;">
+                    <form action="{{ url_for('admin.approve_moderation', queue_id=item.queue_id) }}" method="POST">
+                        <label class="block text-sm font-semibold mb-2">Review Notes (optional):</label>
+                        <textarea name="review_notes" class="vintage-input w-full" rows="3"
+                                  placeholder="Add any notes about this approval..."></textarea>
+                        <div class="flex gap-2 mt-3">
+                            <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">
+                                <i class="fas fa-check mr-2"></i>Confirm Approval
+                            </button>
+                            <button type="button" onclick="hideForm('approveForm{{ item.queue_id }}')"
+                                    class="px-4 py-2 bg-gray-500 text-white rounded">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Reject Form (Hidden) -->
+                <div id="rejectForm{{ item.queue_id }}" class="mt-4 p-4 bg-red-50 border-2 border-red-200 rounded" style="display: none;">
+                    <form action="{{ url_for('admin.reject_moderation', queue_id=item.queue_id) }}" method="POST">
+                        <label class="block text-sm font-semibold mb-2 text-red-800">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>Rejection Reason (required):
+                        </label>
+                        <textarea name="review_notes" class="vintage-input w-full" rows="3" required
+                                  placeholder="Please provide a clear reason for rejection..."></textarea>
+                        <div class="flex gap-2 mt-3">
+                            <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded">
+                                <i class="fas fa-times mr-2"></i>Confirm Rejection
+                            </button>
+                            <button type="button" onclick="hideForm('rejectForm{{ item.queue_id }}')"
+                                    class="px-4 py-2 bg-gray-500 text-white rounded">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
             {% endfor %}
         </div>
         {% else %}
-        <div class="text-center py-8 text-gray-500">
-            <i class="fas fa-check-circle text-4xl mb-3 text-green-500"></i>
-            <p>No items pending moderation.</p>
+        <div class="text-center py-12 text-gray-500">
+            <i class="fas fa-check-circle text-6xl mb-4 text-green-500"></i>
+            <p class="text-xl font-semibold">No items pending moderation</p>
+            <p class="mt-2">All content has been reviewed!</p>
         </div>
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function showApproveForm(queueId) {
+        hideAllForms();
+        document.getElementById('approveForm' + queueId).style.display = 'block';
+    }
+
+    function showRejectForm(queueId) {
+        hideAllForms();
+        document.getElementById('rejectForm' + queueId).style.display = 'block';
+    }
+
+    function hideForm(formId) {
+        document.getElementById(formId).style.display = 'none';
+    }
+
+    function hideAllForms() {
+        const forms = document.querySelectorAll('[id^="approveForm"], [id^="rejectForm"]');
+        forms.forEach(form => form.style.display = 'none');
+    }
+
+    function updateBulkActions() {
+        const checkboxes = document.querySelectorAll('.item-checkbox:checked');
+        const count = checkboxes.length;
+        const bulkBar = document.getElementById('bulkActionsBar');
+        const countSpan = document.getElementById('selectedCount');
+
+        if (count > 0) {
+            bulkBar.style.display = 'block';
+            countSpan.textContent = count;
+
+            // Update hidden inputs for bulk form
+            const form = document.getElementById('bulkActionForm');
+            // Remove old hidden inputs
+            form.querySelectorAll('input[name="queue_ids[]"]').forEach(input => input.remove());
+            // Add new ones
+            checkboxes.forEach(checkbox => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'queue_ids[]';
+                input.value = checkbox.value;
+                form.appendChild(input);
+            });
+
+            // Update selected items visual
+            document.querySelectorAll('.moderation-item').forEach(item => {
+                const checkbox = item.querySelector('.item-checkbox');
+                if (checkbox.checked) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        } else {
+            bulkBar.style.display = 'none';
+            document.querySelectorAll('.moderation-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+        }
+    }
+
+    function clearSelection() {
+        document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        updateBulkActions();
+    }
+
+    // Form submission confirmation for bulk actions
+    document.getElementById('bulkActionForm')?.addEventListener('submit', function(e) {
+        const action = this.querySelector('select[name="action"]').value;
+        const count = document.querySelectorAll('.item-checkbox:checked').length;
+
+        if (!action) {
+            e.preventDefault();
+            alert('Please select an action');
+            return false;
+        }
+
+        const message = action === 'approve'
+            ? `Are you sure you want to approve ${count} items?`
+            : `Are you sure you want to reject ${count} items?`;
+
+        if (!confirm(message)) {
+            e.preventDefault();
+            return false;
+        }
+    });
+</script>
 {% endblock %}

@@ -235,6 +235,7 @@ def create_tables():
                 is_published BOOLEAN DEFAULT FALSE,
                 meta_description TEXT,
                 meta_keywords TEXT,
+                view_count INTEGER DEFAULT 0,
                 published_at TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -329,6 +330,21 @@ def create_tables():
                 reviewed_at TIMESTAMP
             )
         """)
+
+        # Create comments table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS comments (
+                id SERIAL PRIMARY KEY,
+                blog_post_id INTEGER REFERENCES blog_posts(id) ON DELETE CASCADE,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                parent_id INTEGER REFERENCES comments(id) ON DELETE CASCADE,
+                content TEXT NOT NULL,
+                is_approved BOOLEAN DEFAULT TRUE,
+                is_deleted BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         
         # Create api_settings table
         cursor.execute("""
@@ -354,7 +370,19 @@ def create_tables():
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        
+
+        # Create password_reset_tokens table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                token VARCHAR(255) UNIQUE NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                used BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         conn.commit()
         print("All tables created successfully")
 
@@ -467,6 +495,10 @@ def update_schema():
         if not column_exists('blog_posts', 'view_count'):
             cursor.execute("ALTER TABLE blog_posts ADD COLUMN view_count INTEGER DEFAULT 0")
             print("  - Added column: blog_posts.view_count")
+
+        if not column_exists('pages', 'view_count'):
+            cursor.execute("ALTER TABLE pages ADD COLUMN view_count INTEGER DEFAULT 0")
+            print("  - Added column: pages.view_count")
 
         # Add missing columns to users table
         if not column_exists('users', 'profile_image_url'):
@@ -707,7 +739,10 @@ def create_indexes():
             "CREATE INDEX IF NOT EXISTS idx_user_activity_logs_created_at ON user_activity_logs(created_at)",
             "CREATE INDEX IF NOT EXISTS idx_themes_group_id ON themes(group_id)",
             "CREATE INDEX IF NOT EXISTS idx_themes_theme_type ON themes(theme_type)",
-            "CREATE INDEX IF NOT EXISTS idx_themes_created_by ON themes(created_by)"
+            "CREATE INDEX IF NOT EXISTS idx_themes_created_by ON themes(created_by)",
+            "CREATE INDEX IF NOT EXISTS idx_comments_blog_post_id ON comments(blog_post_id)",
+            "CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id)",
+            "CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_id)"
         ]
         
         for index in indexes:

@@ -42,7 +42,13 @@ def view_page(slug):
 
             if not page:
                 flash('Page not found', 'danger')
+                cursor.close()
+                conn.close()
                 return redirect(url_for('index'))
+
+            # Increment view count
+            cursor.execute("UPDATE pages SET view_count = view_count + 1 WHERE id = %s", (page['id'],))
+            conn.commit()
 
             # Process template if one is assigned
             rendered_content = page['content']
