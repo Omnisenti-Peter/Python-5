@@ -42,12 +42,16 @@ def dashboard():
             else:
                 # Admin sees group-specific data
                 cursor.execute("""
-                    SELECT 
+                    SELECT
                         (SELECT COUNT(*) FROM users WHERE group_id = %s AND is_active = TRUE) as total_users,
                         (SELECT COUNT(*) FROM blog_posts WHERE group_id = %s AND is_published = TRUE) as total_blog_posts,
                         (SELECT COUNT(*) FROM pages WHERE group_id = %s AND is_published = TRUE) as total_pages,
-                        (SELECT COUNT(*) FROM users WHERE group_id = %s AND is_banned = TRUE) as banned_users
-                """, (group_id, group_id, group_id, group_id))
+                        (SELECT COUNT(*) FROM users WHERE group_id = %s AND is_banned = TRUE) as banned_users,
+                        (SELECT COUNT(*) FROM moderation_queue mq
+                         LEFT JOIN blog_posts bp ON mq.content_type = 'blog_post' AND mq.content_id = bp.id
+                         LEFT JOIN pages p ON mq.content_type = 'page' AND mq.content_id = p.id
+                         WHERE mq.status = 'pending' AND (bp.group_id = %s OR p.group_id = %s)) as pending_moderation
+                """, (group_id, group_id, group_id, group_id, group_id, group_id))
             
             stats = cursor.fetchone()
             

@@ -36,7 +36,7 @@ def blog_index():
             
             # Get all published blog posts from active groups
             cursor.execute("""
-                SELECT bp.*, u.username, u.first_name, u.last_name, g.name as group_name
+                SELECT bp.*, u.username, u.first_name, u.last_name, u.profile_image_url, g.name as group_name
                 FROM blog_posts bp
                 JOIN users u ON bp.author_id = u.id
                 LEFT JOIN groups g ON bp.group_id = g.id
@@ -67,7 +67,7 @@ def view_post(slug):
 
             # Get blog post
             cursor.execute("""
-                SELECT bp.*, u.username, u.first_name, u.last_name, g.name as group_name
+                SELECT bp.*, u.username, u.first_name, u.last_name, u.profile_image_url, u.bio, g.name as group_name
                 FROM blog_posts bp
                 JOIN users u ON bp.author_id = u.id
                 LEFT JOIN groups g ON bp.group_id = g.id

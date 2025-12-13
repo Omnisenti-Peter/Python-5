@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Profile - Opinian{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold mb-2" style="font-family: var(--heading-font);">
+                <i class="fas fa-user-edit mr-3"></i>Edit Profile
+            </h1>
+            <p class="text-gray-600">Update your personal information</p>
+        </div>
+
+        <!-- Profile Form -->
+        <div class="vintage-card p-8">
+            <form method="POST" action="{{ url_for('edit_profile') }}" enctype="multipart/form-data">
+                <!-- Account Info (Read-only) -->
+                <div class="bg-gray-50 p-4 rounded mb-6">
+                    <h3 class="font-semibold text-lg mb-3">Account Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="text-gray-600">Username:</span>
+                            <strong class="ml-2">{{ user.username }}</strong>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Email:</span>
+                            <strong class="ml-2">{{ user.email }}</strong>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Role:</span>
+                            <strong class="ml-2">{{ user.role_name }}</strong>
+                        </div>
+                        {% if user.group_name %}
+                        <div>
+                            <span class="text-gray-600">Organization:</span>
+                            <strong class="ml-2">{{ user.group_name }}</strong>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Personal Information -->
+                <h3 class="font-semibold text-lg mb-4">Personal Information</h3>
+
+                <!-- First Name -->
+                <div class="mb-6">
+                    <label for="first_name" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-id-card mr-1"></i>First Name
+                    </label>
+                    <input type="text" id="first_name" name="first_name"
+                           value="{{ user.first_name }}"
+                           class="vintage-input w-full" placeholder="Enter first name">
+                </div>
+
+                <!-- Last Name -->
+                <div class="mb-6">
+                    <label for="last_name" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-id-card mr-1"></i>Last Name
+                    </label>
+                    <input type="text" id="last_name" name="last_name"
+                           value="{{ user.last_name }}"
+                           class="vintage-input w-full" placeholder="Enter last name">
+                </div>
+
+                <!-- Bio -->
+                <div class="mb-6">
+                    <label for="bio" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-align-left mr-1"></i>Bio
+                    </label>
+                    <textarea id="bio" name="bio" rows="4"
+                              class="vintage-input w-full"
+                              placeholder="Tell us about yourself...">{{ user.bio if user.bio else '' }}</textarea>
+                    <p class="text-xs text-gray-500 mt-1">This will be shown on your public profile</p>
+                </div>
+
+                <!-- Profile Image Upload -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-image mr-1"></i>Profile Image
+                    </label>
+
+                    <!-- Current Profile Image Preview -->
+                    <div class="mb-4">
+                        {% if user.profile_image_url %}
+                        <img id="profile_preview" src="/{{ user.profile_image_url }}" alt="Profile"
+                             class="w-32 h-32 rounded-full object-cover border-4 border-yellow-600">
+                        {% else %}
+                        <div id="profile_preview" class="w-32 h-32 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600
+                                    flex items-center justify-center border-4 border-yellow-700">
+                            <span class="text-4xl font-bold text-white">
+                                {{ user.username[0].upper() }}
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- File Upload -->
+                    <input type="file" id="profile_image" name="profile_image"
+                           accept="image/*" class="vintage-input w-full mb-2"
+                           onchange="previewImage(event)">
+                    <p class="text-xs text-gray-500">Upload a profile picture (JPG, PNG, GIF - max 5MB)</p>
+
+                    <!-- Hidden field for existing image -->
+                    <input type="hidden" name="existing_profile_image" value="{{ user.profile_image_url if user.profile_image_url else '' }}">
+                </div>
+
+                <script>
+                function previewImage(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const preview = document.getElementById('profile_preview');
+                            preview.innerHTML = '<img src="' + e.target.result + '" alt="Profile" class="w-32 h-32 rounded-full object-cover border-4 border-yellow-600">';
+                        }
+                        reader.readAsDataURL(file);
+                    }
+                }
+                </script>
+
+                <hr class="my-8 border-gray-300">
+
+                <!-- Change Password (Optional) -->
+                <h3 class="font-semibold text-lg mb-4">Change Password (Optional)</h3>
+
+                <!-- Current Password -->
+                <div class="mb-6">
+                    <label for="current_password" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-lock mr-1"></i>Current Password
+                    </label>
+                    <input type="password" id="current_password" name="current_password"
+                           class="vintage-input w-full"
+                           placeholder="Enter current password">
+                    <p class="text-xs text-gray-500 mt-1">Required only if changing password</p>
+                </div>
+
+                <!-- New Password -->
+                <div class="mb-6">
+                    <label for="new_password" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-key mr-1"></i>New Password
+                    </label>
+                    <input type="password" id="new_password" name="new_password"
+                           class="vintage-input w-full"
+                           placeholder="Enter new password" minlength="6">
+                    <p class="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
+                </div>
+
+                <!-- Confirm Password -->
+                <div class="mb-6">
+                    <label for="confirm_password" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-key mr-1"></i>Confirm New Password
+                    </label>
+                    <input type="password" id="confirm_password" name="confirm_password"
+                           class="vintage-input w-full"
+                           placeholder="Confirm new password" minlength="6">
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex justify-between items-center mt-8">
+                    <a href="{{ url_for('index') }}" class="text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-arrow-left mr-1"></i>Cancel
+                    </a>
+                    <button type="submit" class="vintage-button">
+                        <i class="fas fa-save mr-2"></i>Update Profile
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

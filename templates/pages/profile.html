@@ -60,7 +60,7 @@
                 <!-- Edit Profile Button (if viewing own profile) -->
                 {% if session.user_id == user.id %}
                 <div class="mt-6">
-                    <a href="#" class="vintage-button inline-block">
+                    <a href="{{ url_for('edit_profile') }}" class="vintage-button inline-block">
                         <i class="fas fa-edit mr-2"></i>Edit Profile
                     </a>
                 </div>

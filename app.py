@@ -154,7 +154,7 @@ def index():
             
             # Get published blog posts from all active groups
             cursor.execute("""
-                SELECT bp.*, u.username, u.first_name, u.last_name, g.name as group_name
+                SELECT bp.*, u.username, u.first_name, u.last_name, u.profile_image_url, g.name as group_name
                 FROM blog_posts bp
                 JOIN users u ON bp.author_id = u.id
                 LEFT JOIN groups g ON bp.group_id = g.id
@@ -301,6 +301,152 @@ def logout():
     session.clear()
     flash('You have been logged out.', 'info')
     return redirect(url_for('index'))
+
+
+# ============== PROFILE EDIT ROUTE ==============
+
+@app.route('/profile/edit', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    """Edit user profile"""
+    user_id = session.get('user_id')
+
+    if request.method == 'POST':
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        bio = request.form.get('bio', '').strip()
+        current_password = request.form.get('current_password', '').strip()
+        new_password = request.form.get('new_password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
+
+        # Handle profile image upload
+        profile_image_url = request.form.get('existing_profile_image', '').strip()
+        profile_image = request.files.get('profile_image')
+
+        if profile_image and profile_image.filename:
+            # Validate file type
+            allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+            filename = secure_filename(profile_image.filename)
+            file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+
+            if file_ext in allowed_extensions:
+                # Create uploads directory if it doesn't exist
+                upload_dir = os.path.join('static', 'uploads', 'profiles')
+                os.makedirs(upload_dir, exist_ok=True)
+
+                # Generate unique filename with user_id
+                unique_filename = f"user_{user_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{file_ext}"
+                file_path = os.path.join(upload_dir, unique_filename)
+
+                # Check file size (max 5MB)
+                profile_image.seek(0, os.SEEK_END)
+                file_size = profile_image.tell()
+                profile_image.seek(0)
+
+                if file_size > 5 * 1024 * 1024:  # 5MB
+                    flash('Profile image must be less than 5MB', 'danger')
+                    return redirect(url_for('edit_profile'))
+
+                # Save the file
+                profile_image.save(file_path)
+                profile_image_url = f"static/uploads/profiles/{unique_filename}"
+                logger.info(f"Profile image saved: {profile_image_url}")
+            else:
+                flash('Invalid file type. Please upload PNG, JPG, or GIF', 'danger')
+                return redirect(url_for('edit_profile'))
+
+        try:
+            conn = get_db_connection()
+            if conn:
+                cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+                # Get current user data
+                cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+                user = cursor.fetchone()
+
+                if not user:
+                    flash('User not found', 'danger')
+                    return redirect(url_for('index'))
+
+                # If changing password, verify current password
+                if new_password:
+                    if not current_password:
+                        flash('Please enter your current password to change it', 'danger')
+                        return render_template('edit_profile.html', user=user)
+
+                    if not check_password_hash(user['password_hash'], current_password):
+                        flash('Current password is incorrect', 'danger')
+                        return render_template('edit_profile.html', user=user)
+
+                    if new_password != confirm_password:
+                        flash('New passwords do not match', 'danger')
+                        return render_template('edit_profile.html', user=user)
+
+                    if len(new_password) < 6:
+                        flash('New password must be at least 6 characters', 'danger')
+                        return render_template('edit_profile.html', user=user)
+
+                    # Update with new password
+                    password_hash = generate_password_hash(new_password)
+                    cursor.execute("""
+                        UPDATE users
+                        SET first_name = %s, last_name = %s, bio = %s,
+                            profile_image_url = %s, password_hash = %s, updated_at = %s
+                        WHERE id = %s
+                    """, (first_name, last_name, bio, profile_image_url, password_hash, datetime.utcnow(), user_id))
+                else:
+                    # Update without password change
+                    cursor.execute("""
+                        UPDATE users
+                        SET first_name = %s, last_name = %s, bio = %s,
+                            profile_image_url = %s, updated_at = %s
+                        WHERE id = %s
+                    """, (first_name, last_name, bio, profile_image_url, datetime.utcnow(), user_id))
+
+                conn.commit()
+
+                # Update session with new name
+                session['first_name'] = first_name
+                session['last_name'] = last_name
+
+                # Log activity
+                log_user_activity(user_id, 'update_profile', 'user', user_id)
+
+                cursor.close()
+                conn.close()
+
+                flash('Profile updated successfully!', 'success')
+                return redirect(url_for('edit_profile'))
+
+        except Exception as e:
+            logger.error(f"Error updating profile: {e}")
+            flash('Error updating profile', 'danger')
+
+    # GET request - show form
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("""
+                SELECT u.*, r.name as role_name, g.name as group_name
+                FROM users u
+                JOIN roles r ON u.role_id = r.id
+                LEFT JOIN groups g ON u.group_id = g.id
+                WHERE u.id = %s
+            """, (user_id,))
+            user = cursor.fetchone()
+            cursor.close()
+            conn.close()
+
+            return render_template('edit_profile.html', user=user)
+        else:
+            flash('Database connection error', 'danger')
+            return redirect(url_for('index'))
+
+    except Exception as e:
+        logger.error(f"Error loading profile: {e}")
+        flash('Error loading profile', 'danger')
+        return redirect(url_for('index'))
 
 
 # ============== PASSWORD RESET ROUTES ==============

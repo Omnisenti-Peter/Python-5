@@ -24,9 +24,20 @@
                                 <i class="fas fa-calendar mr-1"></i>
                                 {{ post.published_at.strftime('%B %d, %Y') }}
                             </span>
-                            <span>
-                                <i class="fas fa-user mr-1"></i>
-                                <a href="{{ url_for('pages.user_profile', username=post.username) }}" 
+                            <span class="flex items-center">
+                                <!-- Author Avatar -->
+                                {% if post.profile_image_url %}
+                                <img src="/{{ post.profile_image_url }}" alt="{{ post.first_name }}"
+                                     class="w-6 h-6 rounded-full object-cover border border-yellow-600 mr-2">
+                                {% else %}
+                                <div class="w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600
+                                            flex items-center justify-center border border-yellow-700 mr-2">
+                                    <span class="text-xs font-bold text-white">
+                                        {{ post.first_name[0].upper() if post.first_name else post.username[0].upper() }}
+                                    </span>
+                                </div>
+                                {% endif %}
+                                <a href="{{ url_for('pages.user_profile', username=post.username) }}"
                                    class="text-yellow-600 hover:text-yellow-700">
                                     {{ post.first_name }} {{ post.last_name }}
                                 </a>
@@ -68,23 +79,35 @@
                     <h3 class="text-xl font-bold mb-4 flapper-accent">
                         <i class="fas fa-user-circle mr-2"></i>About the Author
                     </h3>
-                    
+
                     <div class="flex items-start space-x-4">
-                        <div class="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center flex-shrink-0">
-                            <i class="fas fa-user text-2xl text-black"></i>
+                        <!-- Author Profile Image -->
+                        {% if post.profile_image_url %}
+                        <img src="/{{ post.profile_image_url }}" alt="{{ post.first_name }}"
+                             class="w-16 h-16 rounded-full object-cover border-4 border-yellow-600 flex-shrink-0">
+                        {% else %}
+                        <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center flex-shrink-0 border-4 border-yellow-700">
+                            <span class="text-2xl font-bold text-white">
+                                {{ post.first_name[0].upper() if post.first_name else post.username[0].upper() }}
+                            </span>
                         </div>
-                        
+                        {% endif %}
+
                         <div>
                             <h4 class="font-semibold text-lg mb-1">
                                 {{ post.first_name }} {{ post.last_name }}
                             </h4>
                             <p class="text-gray-600 mb-2">Member of {{ post.group_name }}</p>
                             <p class="text-gray-700">
-                                Passionate writer sharing insights and stories with the community.
+                                {% if post.bio %}
+                                    {{ post.bio }}
+                                {% else %}
+                                    Passionate writer sharing insights and stories with the community.
+                                {% endif %}
                             </p>
-                            
+
                             <div class="mt-3">
-                                <a href="{{ url_for('pages.user_profile', username=post.username) }}" 
+                                <a href="{{ url_for('pages.user_profile', username=post.username) }}"
                                    class="text-yellow-600 hover:text-yellow-700 font-medium">
                                     View Profile <i class="fas fa-arrow-right ml-1"></i>
                                 </a>

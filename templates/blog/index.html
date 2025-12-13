@@ -81,9 +81,17 @@
                         
                         <div class="flex items-center justify-between mb-4">
                             <div class="flex items-center">
-                                <div class="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center mr-2">
-                                    <i class="fas fa-user text-black text-sm"></i>
+                                <!-- Author Avatar -->
+                                {% if post.profile_image_url %}
+                                <img src="/{{ post.profile_image_url }}" alt="{{ post.first_name }}"
+                                     class="w-8 h-8 rounded-full object-cover border border-yellow-600 mr-2">
+                                {% else %}
+                                <div class="w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center mr-2 border border-yellow-700">
+                                    <span class="text-xs font-bold text-white">
+                                        {{ post.first_name[0].upper() if post.first_name else post.username[0].upper() }}
+                                    </span>
                                 </div>
+                                {% endif %}
                                 <span class="text-sm text-gray-600">
                                     {{ post.first_name }} {{ post.last_name }}
                                 </span>
